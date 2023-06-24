@@ -7,5 +7,5 @@ Group members:
 * Julio Lopez
 * Jovany Perez
 * Michael Lowry
-*
+* Salman Hamada
 *
