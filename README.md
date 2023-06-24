@@ -6,6 +6,6 @@ Group members:
 * Noor Haider
 * Julio Lopez
 * Jovany Perez
-*
+* Michael Lowry
 *
 *
