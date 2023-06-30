@@ -8,4 +8,4 @@ Group members:
 * Jovany Perez
 * Michael Lowry
 * Salman Hamada
-*
+* Rebecca Brummer
