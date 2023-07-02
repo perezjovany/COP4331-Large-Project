@@ -1,4 +1,4 @@
-This repository hosts Group 19's large project for COP4331. The project is an application for...
+This repository hosts Group 20's large project for COP4331. The project is an application for a fridge management system.
 
 Group members:
 
