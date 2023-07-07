@@ -2,32 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <link rel="icon" href="/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#022b3a" />
   <meta name="description" content="FridgeTracker - Track food in your fridge" />
-  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-  <!--
-    manifest.json provides metadata used when your web app is installed on a
-    user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-  -->
-  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-  <!--
-    Notice the use of %PUBLIC_URL% in the tags above.
-    It will be replaced with the URL of the `public` folder during the build.
-    Only files inside the `public` folder can be referenced from the HTML.
-
-    Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-    work correctly both with client-side routing and a non-root public URL.
-    Learn how to configure a non-root public URL by running `npm run build`.
-  -->
+  <link rel="apple-touch-icon" href="/logo192.png" />
+  <link rel="manifest" href="/manifest.json" />
   <title>FridgeTracker</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       font-family: Arial, sans-serif;
-      background-color: #ffffff;
+      background-color: #fff;
     }
 
     header {
@@ -36,7 +23,7 @@
       align-items: center;
       padding: 16px;
       background-color: #022b3a;
-      color: #ffffff;
+      color: #fff;
     }
 
     header h1 {
@@ -50,7 +37,7 @@
       border: none;
       font-size: 16px;
       background-color: #1f7a8c;
-      color: #ffffff;
+      color: #fff;
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
@@ -63,12 +50,6 @@
       padding: 16px;
     }
 
-    .welcome-message {
-      font-size: 24px;
-      margin-bottom: 16px;
-    }
-
-    /* Popup Styles */
     .popup {
       position: fixed;
       top: 50%;
@@ -133,7 +114,7 @@
       border-radius: 4px;
       border: none;
       background-color: #1f7a8c;
-      color: #ffffff;
+      color: #fff;
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
@@ -151,23 +132,17 @@
       <button onclick="openSignupPopup()">Sign Up</button>
     </div>
   </header>
-  <div class="content">
-    <div class="welcome-message">
-      Welcome to FridgeTracker! Start tracking your food items.
-    </div>
-  </div>
 
-  <!-- Login Popup -->
   <div id="loginPopup" class="popup">
     <div class="popup-header">
       <h2 class="popup-title">Login</h2>
-      <button class="popup-close" onclick="closePopup('loginPopup')">X</button>
+      <button class="popup-close" onclick='closePopup("loginPopup")'>X</button>
     </div>
     <div class="popup-content">
       <form class="popup-form">
         <div class="form-group">
-          <label for="loginEmail">Email:</label>
-          <input type="email" id="loginEmail" placeholder="Enter your email" />
+          <label for="loginUsername">Username:</label>
+          <input type="text" id="loginUsername" placeholder="Enter your username" />
         </div>
         <div class="form-group">
           <label for="loginPassword">Password:</label>
@@ -180,21 +155,36 @@
     </div>
   </div>
 
-  <!-- Signup Popup -->
   <div id="signupPopup" class="popup">
     <div class="popup-header">
       <h2 class="popup-title">Sign Up</h2>
-      <button class="popup-close" onclick="closePopup('signupPopup')">X</button>
+      <button class="popup-close" onclick='closePopup("signupPopup")'>X</button>
     </div>
     <div class="popup-content">
       <form class="popup-form">
         <div class="form-group">
-          <label for="signupName">Name:</label>
-          <input type="text" id="signupName" placeholder="Enter your name" />
+          <label for="signupFirstName">First Name:</label>
+          <input type="text" id="signupFirstName" placeholder="Enter your first name" />
+        </div>
+        <div class="form-group">
+          <label for="signupLastName">Last Name:</label>
+          <input type="text" id="signupLastName" placeholder="Enter your last name" />
+        </div>
+        <div class="form-group">
+          <label for="signupUsername">Username:</label>
+          <input type="text" id="signupUsername" placeholder="Enter your username" />
         </div>
         <div class="form-group">
           <label for="signupEmail">Email:</label>
           <input type="email" id="signupEmail" placeholder="Enter your email" />
+        </div>
+        <div class="form-group">
+          <label for="signupDOB">Date of Birth:</label>
+          <input type="date" id="signupDOB" />
+        </div>
+        <div class="form-group">
+          <label for="signupPhone">Phone Number:</label>
+          <input type="tel" id="signupPhone" placeholder="Enter your phone number" />
         </div>
         <div class="form-group">
           <label for="signupPassword">Password:</label>
