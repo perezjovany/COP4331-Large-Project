@@ -147,8 +147,8 @@
   <header>
     <h1>FridgeTracker</h1>
     <div>
-      <button onclick="handleLoginClick()">Login</button>
-      <button onclick="handleSignupClick()">Sign Up</button>
+      <button onclick="openLoginPopup()">Login</button>
+      <button onclick="openSignupPopup()">Sign Up</button>
     </div>
   </header>
   <div class="content">
@@ -208,20 +208,27 @@
   </div>
 
   <script>
-    function handleLoginClick() {
-      openPopup('loginPopup');
+    function openLoginPopup() {
+      closeActivePopup();
+      document.getElementById('loginPopup').classList.add('active');
     }
 
-    function handleSignupClick() {
-      openPopup('signupPopup');
-    }
-
-    function openPopup(popupId) {
-      document.getElementById(popupId).classList.add('active');
+    function openSignupPopup() {
+      closeActivePopup();
+      document.getElementById('signupPopup').classList.add('active');
     }
 
     function closePopup(popupId) {
       document.getElementById(popupId).classList.remove('active');
+    }
+
+    function closeActivePopup() {
+      var popups = document.getElementsByClassName('popup');
+      for (var i = 0; i < popups.length; i++) {
+        if (popups[i].classList.contains('active')) {
+          popups[i].classList.remove('active');
+        }
+      }
     }
   </script>
 </body>
