@@ -67,6 +67,80 @@
       font-size: 24px;
       margin-bottom: 16px;
     }
+
+    /* Popup Styles */
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #f1f1f1;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: none;
+      z-index: 9999;
+    }
+
+    .popup.active {
+      display: block;
+    }
+
+    .popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .popup-title {
+      font-size: 20px;
+    }
+
+    .popup-close {
+      background: none;
+      border: none;
+      color: #333;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .popup-content {
+      margin-bottom: 16px;
+    }
+
+    .popup-form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      font-weight: bold;
+    }
+
+    .form-group input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .form-group button {
+      padding: 8px 16px;
+      border-radius: 4px;
+      border: none;
+      background-color: #1f7a8c;
+      color: #ffffff;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .form-group button:hover {
+      background-color: #bfdbf7;
+    }
   </style>
 </head>
 <body>
@@ -82,15 +156,72 @@
       Welcome to FridgeTracker! Start tracking your food items.
     </div>
   </div>
+
+  <!-- Login Popup -->
+  <div id="loginPopup" class="popup">
+    <div class="popup-header">
+      <h2 class="popup-title">Login</h2>
+      <button class="popup-close" onclick="closePopup('loginPopup')">X</button>
+    </div>
+    <div class="popup-content">
+      <form class="popup-form">
+        <div class="form-group">
+          <label for="loginEmail">Email:</label>
+          <input type="email" id="loginEmail" placeholder="Enter your email" />
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password:</label>
+          <input type="password" id="loginPassword" placeholder="Enter your password" />
+        </div>
+        <div class="form-group">
+          <button type="submit">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Signup Popup -->
+  <div id="signupPopup" class="popup">
+    <div class="popup-header">
+      <h2 class="popup-title">Sign Up</h2>
+      <button class="popup-close" onclick="closePopup('signupPopup')">X</button>
+    </div>
+    <div class="popup-content">
+      <form class="popup-form">
+        <div class="form-group">
+          <label for="signupName">Name:</label>
+          <input type="text" id="signupName" placeholder="Enter your name" />
+        </div>
+        <div class="form-group">
+          <label for="signupEmail">Email:</label>
+          <input type="email" id="signupEmail" placeholder="Enter your email" />
+        </div>
+        <div class="form-group">
+          <label for="signupPassword">Password:</label>
+          <input type="password" id="signupPassword" placeholder="Enter your password" />
+        </div>
+        <div class="form-group">
+          <button type="submit">Sign Up</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     function handleLoginClick() {
-      // TODO: Implement login functionality
-      console.log('Login clicked');
+      openPopup('loginPopup');
     }
 
     function handleSignupClick() {
-      // TODO: Implement signup functionality
-      console.log('Signup clicked');
+      openPopup('signupPopup');
+    }
+
+    function openPopup(popupId) {
+      document.getElementById(popupId).classList.add('active');
+    }
+
+    function closePopup(popupId) {
+      document.getElementById(popupId).classList.remove('active');
     }
   </script>
 </body>
