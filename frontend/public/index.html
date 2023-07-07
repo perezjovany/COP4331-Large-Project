@@ -29,6 +29,19 @@
     header h1 {
       margin: 0;
       font-size: 24px;
+      display: flex;
+      align-items: center;
+    }
+
+    header h1 img {
+      width: 64px;
+      height: 64px;
+      margin-right: 8px;
+    }
+
+    header h1 a { /* Added this CSS rule */
+      color: #fff;
+      text-decoration: none;
     }
 
     header button {
@@ -60,7 +73,7 @@
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       display: none;
-      z-index: 9999;
+      z-index: 999;
     }
 
     .popup.active {
@@ -122,16 +135,36 @@
     .form-group button:hover {
       background-color: #bfdbf7;
     }
+
+    .logo {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo.hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>FridgeTracker</h1>
+    <h1>
+      <a href="index.html">FridgeTracker</a> <!-- Updated the heading title to a link -->
+    </h1>
     <div>
       <button onclick="openLoginPopup()">Login</button>
       <button onclick="openSignupPopup()">Sign Up</button>
     </div>
   </header>
+
+  <div class="logo" id="logo">
+    <img src="fridge.png" alt="FridgeTracker" />
+  </div>
 
   <div id="loginPopup" class="popup">
     <div class="popup-header">
@@ -201,15 +234,18 @@
     function openLoginPopup() {
       closeActivePopup();
       document.getElementById('loginPopup').classList.add('active');
+      document.getElementById('logo').classList.add('hidden');
     }
 
     function openSignupPopup() {
       closeActivePopup();
       document.getElementById('signupPopup').classList.add('active');
+      document.getElementById('logo').classList.add('hidden');
     }
 
     function closePopup(popupId) {
       document.getElementById(popupId).classList.remove('active');
+      document.getElementById('logo').classList.remove('hidden');
     }
 
     function closeActivePopup() {
