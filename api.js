@@ -55,7 +55,7 @@ exports.setApp = function ( app, client )
 
     if( results.length > 0 )
     {
-      id = results[0].UserID;
+      id = results[0].UserId;
       fn = results[0].FirstName;
       ln = results[0].LastName;
     }
