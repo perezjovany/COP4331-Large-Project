@@ -52,7 +52,8 @@ class _LoginState extends State<Login> {
         });
       }
     } catch (e) {
-      _showErrorDialog(e.toString()); // Call a separate method to show the error dialog
+      _showErrorDialog(
+          e.toString()); // Call a separate method to show the error dialog
     }
   }
 

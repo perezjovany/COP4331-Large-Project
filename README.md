@@ -1,16 +1,11 @@
-# flutter_app
+This repository hosts Group 20's large project for COP4331. The project is an application for a fridge management system.
 
-A new Flutter project.
+Group members:
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+* Nicholas Brown
+* Noor Haider
+* Julio Lopez
+* Jovany Perez
+* Michael Lowry
+* Salman Hamada
+* Rebecca Brummer
