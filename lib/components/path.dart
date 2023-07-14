@@ -14,6 +14,6 @@ Future<String> buildPath(String route) async {
     return 'http://localhost:5000/$route';
   } else {
     // Running on mobile platform
-    return 'http://11.23.86.195:5000/$route'; // TODO: remove personal IP
+    return 'http://11.22.11.68:5000/$route'; // TODO: remove personal IP
   }
 }

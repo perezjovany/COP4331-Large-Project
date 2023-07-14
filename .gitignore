@@ -10,7 +10,8 @@
 .svn/
 migrate_working_dir/
 node_modules
-.env
+# TODO: uncomment on release
+# .env
 
 # IntelliJ related
 *.iml
