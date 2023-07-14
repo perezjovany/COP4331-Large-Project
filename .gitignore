@@ -33,7 +33,7 @@ node_modules
 .pub-cache/
 .pub/
 # TODO: figure out if we need to keep the build
-/build/ 
+/build/
 
 # Symbolication related
 app.*.symbols
