@@ -19,25 +19,36 @@ exports.setApp = function ( app, client )
     // incoming: userId, card
     // outgoing: error
     
-    const { userId, card } = req.body;
+    const { token, card } = req.body;
 
-    //const newCard = { Card: card, UserId: userId };
-    const newCard = new Card({ Card: card, UserId: userId });
-    var error = '';
-    
-    try 
-    {
-      // const db = client.db();
-      // const result = db.collection('Cards').insertOne(newCard);
-      newCard.save();
-    }
-    catch(e)
-    {
-      error = e.toString();
-    }
+    jwt.verify(token, jwtKey, function(err, decoded) {
 
-    var ret = { error: error };
-    res.status(200).json(ret);
+      //Check for invalid JWT
+      if (err != null) {
+        res.status(401).json({ error: err });
+        return;
+      }
+
+      var userId = decoded.id;
+
+      //const newCard = { Card: card, UserId: userId };
+      const newCard = new Card({ Card: card, UserId: userId });
+      var error = '';
+
+      try
+      {
+        // const db = client.db();
+        // const result = db.collection('Cards').insertOne(newCard);
+        newCard.save();
+      }
+      catch(e)
+      {
+        error = e.toString();
+      }
+
+      var ret = { error: error };
+      res.status(200).json(ret);
+    });
   });
 
 
