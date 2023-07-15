@@ -54,7 +54,7 @@ exports.setApp = function ( app, client )
 
     if( results.length > 0 )
     {
-      id = results[0].userID;
+      id = results[0].userId;
       fn = results[0].firstName;
       ln = results[0].lastName;
       em = results[0].email;

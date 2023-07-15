@@ -14,7 +14,7 @@ require('dotenv').config();
 const url = process.env.MONGODB_URI;
 const mongoose = require("mongoose");
 mongoose.connect(url, {
-  dbName: 'COP4331Cards'
+  dbName: 'COP4331Food'
 })
   .then(() => console.log("Mongo DB connected"))
   .catch(err => console.log(err));
