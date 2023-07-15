@@ -1,10 +1,15 @@
 require('express');
 require('mongodb');
+const jwt = require('jsonwebtoken');
 
 //load user model
 const User = require("./models/user.js");
 //load card model
 const Card = require("./models/card.js");
+
+
+//JWT
+const jwtKey = "8E9785A572443B71F4A15591F6B56";
 
 exports.setApp = function ( app, client )
 {
@@ -60,7 +65,10 @@ exports.setApp = function ( app, client )
       ln = results[0].LastName;
     }
 
-    var ret = { id:id, firstName:fn, lastName:ln, error:''};
+    //Generate JWT
+    var jwtToken = jwt.sign({ id: id }, jwtKey);
+
+    var ret = { id:id, firstName:fn, lastName:ln, token:jwtToken, error:''};
     res.status(200).json(ret);
   });
 
