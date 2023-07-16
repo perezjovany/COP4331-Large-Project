@@ -75,7 +75,7 @@ exports.setApp = function ( app, client )
   
       // Input Validation
       if (!login || !password) {
-        return res.status(400).json({ error: 'Missing login or password' });
+        return res.status(400).json({ error: 'MISSING USERNAME OR PASSWORD' });
       }
   
       const results = await User.find({ login, password });
@@ -100,34 +100,23 @@ exports.setApp = function ( app, client )
   
         // Successful response with 200 status
         res.status(200).json(response);
-      } else {
-        response = {
-          error: 'Invalid credentials'
-        };
-  
+      } else {  
         // Unauthorized response with 401 status
-        res.status(401).json(response);
+        res.status(401).json({ error: 'INCORRECT USERNAME/PASSWORD'});
       }
     } catch (error) {
       // Error Handling
       console.error('Error occurred:', error);
   
-      if (error instanceof jwt.JsonWebTokenError) {
-        // JWT verification error with 401 status
-        return res.status(401).json({ error: 'Invalid token' });
-      }
-  
       if (error.name === 'MongoError') {
         // MongoDB related error with 500 status
-        return res.status(500).json({ error: 'Database error' });
+        return res.status(500).json({ error: 'DATABASE ERROR' });
       }
   
       // For other unhandled errors with 500 status
-      res.status(500).json({ error: 'Something went wrong' });
+      res.status(500).json({ error: 'SOMETHING WENT WRONG' });
     }
   });
-
-  const axios = require('axios');
 
   app.get('/api/parser', async (req, res, next) => 
   {

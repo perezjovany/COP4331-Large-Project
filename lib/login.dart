@@ -44,6 +44,7 @@ class _LoginPageState extends State<LoginPage> {
           'email': res['email'],
           'phone': res['phone']
         };
+
         // Store user data in SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_data', jsonEncode(user));
@@ -55,12 +56,11 @@ class _LoginPageState extends State<LoginPage> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushNamed(context, '/main');
         });
-      } else if (response.statusCode == 401) {
-        setState(() {
-          message = 'User/Password combination incorrect';
-        });
       } else {
-        _showErrorDialog('Something went wrong. Please try again later.');
+        // Error status code
+        setState(() {
+          message = res['error'];
+        });
       }
     } catch (e) {
       _showErrorDialog(e.toString());
