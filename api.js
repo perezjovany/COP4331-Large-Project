@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken')
 const User = require("./models/user.js");
 
 //JWT
-const jwtKey = "8E9785A572443B71F4A15591F6B56" // TODO: store key as env variable
+const jwtKey = process.env.JWT_SECRET
 
 exports.setApp = function ( app, client )
 {
