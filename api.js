@@ -11,6 +11,26 @@ const jwtKey = "8E9785A572443B71F4A15591F6B56" // TODO: store key as env variabl
 
 exports.setApp = function ( app, client )
 {
+  // Middleware to authenticate the JWT token
+  function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token == null) {
+      return res.status(401).json({ error: 'MISSING AUTHORIZATION HEADER' });
+    }
+
+    jwt.verify(token, jwtKey, (err, user) => {
+      if (err) {
+        console.error('Invalid token:', err);
+        return res.status(403).json({ error: 'INVALID TOKEN' });
+      }
+
+      // Valid token, add the user data to the request object
+      req.user = user;
+      next();
+    });
+  }
+
   // Endpoint URL: /api/signup
   // HTTP Method: POST
   app.post('/api/signup', async (req, res, next) => {
@@ -118,31 +138,42 @@ exports.setApp = function ( app, client )
     }
   });
 
-  app.get('/api/parser', async (req, res, next) => 
-  {
-    // incoming: app_id, app_key, ing, nutrition_type
-    // outgoing: {text,
-    //            parsed[{food{foodId, label, knownAs, nutrients{ENERC_KCAL, PROCNT, FAT, CHOCDF, FIBTG}, category, categoryLabel, image}],
-    //            hints[{food{foodId, label, knownAs, nutrients{ENERC_KCAL, PROCNT, FAT, CHOCDF, FIBTG}, category, categoryLabel, image},
-    //                   measures[{uri, label, weight, qualified[{qualifiers[{uri, label}], weight}]?}]}}],
-    //            _links{next{title, href}}}
-    const { app_id, app_key, ing, nutrition_type } = req.body;
-
-    const apiUrl = `https://api.edamam.com/api/food-database/v2/parser?app_id=${app_id}&app_key=${app_key}&ingr=${ing}&nutrition-type=${nutrition_type}`;
-
+  // Endpoint URL: /api/parser
+  // HTTP Method: POST
+  app.post('/api/parser', authenticateToken, async (req, res, next) => {
     try {
+      // incoming: app_id, app_key, ing, nutrition_type
+      // outgoing: text, foodResults, nextPage
+
+      const { app_id, app_key, ing, nutrition_type } = req.body;
+
+      const apiUrl = `https://api.edamam.com/api/food-database/v2/parser?app_id=${app_id}&app_key=${app_key}&ingr=${ing}&nutrition-type=${nutrition_type}`;
+
       const response = await axios.get(apiUrl);
 
-      res.json(response.data);
-    } catch (error) {
-      if (error.response && error.response.status === 401) {
-        // Handle the "Unauthorized" error
-        console.error('Unauthorized: Invalid credentials');
-        return res.status(401).json({ error: 'Unauthorized: Invalid credentials' });
-      }
+      const text = response.data.text;
+      const foodResults = response.data.hints || [];
+      const nextPage = response.data._links.next || null;
 
-      console.error('Error response:', error.response.data);
-      next(error);
+      const formattedResponse = {
+        text: text,
+        foodResults: foodResults,
+        nextPage: nextPage,
+      };
+
+      // Successful response with 200 status
+      res.status(200).json(formattedResponse);
+    } catch (error) {
+      // Error Handling
+      console.error('Error occurred:', error);
+
+      if (error.response && error.response.status === 401) {
+        // Unauthorized response with 401 status
+        res.status(401).json({ error: 'UNAUTHORIZED' });
+      } else {
+        // For other unhandled errors with 500 status
+        res.status(500).json({ error: 'SOMETHING WENT WRONG' });
+      }
     }
   });
 }
