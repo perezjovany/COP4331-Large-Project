@@ -11,29 +11,58 @@ const jwtKey = "8E9785A572443B71F4A15591F6B56" // TODO: store key as env variabl
 
 exports.setApp = function ( app, client )
 {
+  // Endpoint URL: /api/signup
+  // HTTP Method: POST
+  app.post('/api/signup', async (req, res, next) => {
+    try {
+      // incoming: firstName, lastName, login, password, email, phone
+      // outgoing: error
 
-  app.post('/api/signup', async (req, res, next) =>
-  {
-    // incoming: firstName, lastName, login, password, email, phone
-    // outgoing: error
-    
-    const { FirstName, LastName, Login, Password, Email, Phone } = req.body;
+      const { firstName, lastName, login, password, email, phone } = req.body;
 
-    const newUser = new User({ firstName: FirstName, lastName: LastName, login: Login, password: Password, email: Email, phone: Phone });
-    var error = '';
-    
-    try 
-    {
-      newUser.save();
+      // Input Validation
+      if (!firstName || !lastName || !login || !password || !email || !phone) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Unique User Check
+      const existingUser = await User.findOne({ $or: [{ login: login }, { email: email }] });
+      if (existingUser) {
+        return res.status(409).json({ error: 'User with this login or email already exists' });
+      }
+
+      const newUser = new User({
+        firstName: firstName,
+        lastName: lastName,
+        login: login,
+        password: password,
+        email: email,
+        phone: phone
+      });
+
+      await newUser.save();
+
+      // Successful response with 200 status
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      // Error Handling
+      console.error('Error occurred:', error);
+
+      if (error.name === 'ValidationError') {
+        // Mongoose validation error with 400 status
+        return res.status(400).json({ error: error.message });
+      }
+
+      if (error.name === 'MongoError') {
+        // MongoDB related error with 500 status
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      // For other unhandled errors with 500 status
+      res.status(500).json({ error: 'Something went wrong' });
     }
-    catch(e)
-    {
-      error = e.toString();
-    }
-
-    var ret = { error: error };
-    res.status(200).json(ret);
   });
+
   
   // Endpoint URL: /api/login
   // HTTP Method: POST

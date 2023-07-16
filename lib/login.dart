@@ -36,15 +36,11 @@ class _LoginPageState extends State<LoginPage> {
       var response = await http.post(url, headers: headers, body: body);
       var res = jsonDecode(response.body);
 
-      if (res['id'] <= 0) {
-        setState(() {
-          message = 'User/Password combination incorrect';
-        });
-      } else {
+      if (response.statusCode == 200) {
         var user = {
           'firstName': res['firstName'],
           'lastName': res['lastName'],
-          'id': res['id'],
+          'userId': res['userId'],
           'email': res['email'],
           'phone': res['phone']
         };
@@ -59,10 +55,15 @@ class _LoginPageState extends State<LoginPage> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushNamed(context, '/main');
         });
+      } else if (response.statusCode == 401) {
+        setState(() {
+          message = 'User/Password combination incorrect';
+        });
+      } else {
+        _showErrorDialog('Something went wrong. Please try again later.');
       }
     } catch (e) {
-      _showErrorDialog(
-          e.toString()); // Call a separate method to show the error dialog
+      _showErrorDialog(e.toString());
     }
   }
 
@@ -221,6 +222,19 @@ class _LoginPageState extends State<LoginPage> {
                         child: const Text("Login",
                             style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
+
+                      // Display error message
+                      if (message.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Text(
+                            message,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
 
                       //===== SignUp Button. It navigates to SignUpPage.
                       const SizedBox(height: 20),
