@@ -33,6 +33,7 @@ node_modules
 .packages
 .pub-cache/
 .pub/
+pubspec.lock
 /build/
 
 # Symbolication related
