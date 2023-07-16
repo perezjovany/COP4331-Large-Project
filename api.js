@@ -1,5 +1,6 @@
 require('express');
 require('mongodb');
+const axios = require('axios')
 
 //load user model
 const User = require("./models/user.js");
@@ -19,8 +20,6 @@ exports.setApp = function ( app, client )
     
     try 
     {
-      // const db = client.db();
-      // const result = db.collection('Users').insertOne(newUser);
       newUser.save();
     }
     catch(e)
@@ -42,8 +41,6 @@ exports.setApp = function ( app, client )
 
     const { login, password } = req.body;
 
-    //const db = client.db("COP4331Food");
-    //const results = await db.collection('Users').find({login: login, password: password}).toArray();
     const results = await User.find({ login: login, password: password });
 
     var id = -1;
@@ -65,4 +62,33 @@ exports.setApp = function ( app, client )
     res.status(200).json(ret);
   });
 
+  const axios = require('axios');
+
+  app.get('/api/parser', async (req, res, next) => 
+  {
+    // incoming: app_id, app_key, ing, nutrition_type
+    // outgoing: {text,
+    //            parsed[{food{foodId, label, knownAs, nutrients{ENERC_KCAL, PROCNT, FAT, CHOCDF, FIBTG}, category, categoryLabel, image}],
+    //            hints[{food{foodId, label, knownAs, nutrients{ENERC_KCAL, PROCNT, FAT, CHOCDF, FIBTG}, category, categoryLabel, image},
+    //                   measures[{uri, label, weight, qualified[{qualifiers[{uri, label}], weight}]?}]}}],
+    //            _links{next{title, href}}}
+    const { app_id, app_key, ing, nutrition_type } = req.body;
+
+    const apiUrl = `https://api.edamam.com/api/food-database/v2/parser?app_id=${app_id}&app_key=${app_key}&ingr=${ing}&nutrition-type=${nutrition_type}`;
+
+    try {
+      const response = await axios.get(apiUrl);
+
+      res.json(response.data);
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        // Handle the "Unauthorized" error
+        console.error('Unauthorized: Invalid credentials');
+        return res.status(401).json({ error: 'Unauthorized: Invalid credentials' });
+      }
+
+      console.error('Error response:', error.response.data);
+      next(error);
+    }
+  });
 }
