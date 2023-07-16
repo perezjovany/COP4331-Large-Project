@@ -1,9 +1,13 @@
 require('express');
 require('mongodb');
 const axios = require('axios')
+const jwt = require('jsonwebtoken')
 
 //load user model
 const User = require("./models/user.js");
+
+//JWT
+const jwtKey = "8E9785A572443B71F4A15591F6B56" // TODO: store key as env variable
 
 exports.setApp = function ( app, client )
 {
@@ -30,36 +34,68 @@ exports.setApp = function ( app, client )
     var ret = { error: error };
     res.status(200).json(ret);
   });
-
-
-  app.post('/api/login', async (req, res, next) => 
-  {
-    // incoming: login, password
-    // outgoing: id, firstName, lastName, email, phone, error
-    
-    var error = '';
-
-    const { login, password } = req.body;
-
-    const results = await User.find({ login: login, password: password });
-
-    var id = -1;
-    var fn = '';
-    var ln = '';
-    var em = '';
-    var ph = '';
-
-    if( results.length > 0 )
-    {
-      id = results[0].userId;
-      fn = results[0].firstName;
-      ln = results[0].lastName;
-      em = results[0].email;
-      ph = results[0].phone;
+  
+  // Endpoint URL: /api/login
+  // HTTP Method: POST
+  app.post('/api/login', async (req, res, next) => {
+    try {
+      // incoming: login, password
+      // outgoing: userId, firstName, lastName, email, phone, token, error
+  
+      const { login, password } = req.body;
+  
+      // Input Validation
+      if (!login || !password) {
+        return res.status(400).json({ error: 'Missing login or password' });
+      }
+  
+      const results = await User.find({ login, password });
+  
+      let response = {
+        error: ''
+      };
+  
+      if (results.length > 0) {
+        const { userId, firstName, lastName, email, phone } = results[0];
+        const jwtToken = jwt.sign({ id: userId }, jwtKey);
+  
+        response = {
+          userId,
+          firstName,
+          lastName,
+          email,
+          phone,
+          token: jwtToken,
+          error: ''
+        };
+  
+        // Successful response with 200 status
+        res.status(200).json(response);
+      } else {
+        response = {
+          error: 'Invalid credentials'
+        };
+  
+        // Unauthorized response with 401 status
+        res.status(401).json(response);
+      }
+    } catch (error) {
+      // Error Handling
+      console.error('Error occurred:', error);
+  
+      if (error instanceof jwt.JsonWebTokenError) {
+        // JWT verification error with 401 status
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+  
+      if (error.name === 'MongoError') {
+        // MongoDB related error with 500 status
+        return res.status(500).json({ error: 'Database error' });
+      }
+  
+      // For other unhandled errors with 500 status
+      res.status(500).json({ error: 'Something went wrong' });
     }
-
-    var ret = { id:id, firstName:fn, lastName:ln, email:em, phone:ph, error: error};
-    res.status(200).json(ret);
   });
 
   const axios = require('axios');
