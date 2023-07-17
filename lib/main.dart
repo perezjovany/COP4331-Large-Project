@@ -332,7 +332,7 @@ class _MainPageState extends State<MainPage> {
         return AlertDialog(
           title: const Text('Feature Not Supported'),
           content:
-              const Text('Barcode scanning is not supported on your browser.'),
+              const Text('Barcode scanning is not supported on your device.'),
           actions: [
             TextButton(
               onPressed: () {

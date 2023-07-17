@@ -44,9 +44,6 @@ class _LoginPageState extends State<LoginPage> {
       var res = jsonDecode(response.body);
       final token = res['token'];
 
-      // Store the token securely
-      await storeToken(token);
-
       if (response.statusCode == 200) {
         var user = {
           'firstName': res['firstName'],
@@ -55,6 +52,9 @@ class _LoginPageState extends State<LoginPage> {
           'email': res['email'],
           'phone': res['phone']
         };
+
+        // Store the token securely
+        await storeToken(token);
 
         // Store user data in SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
