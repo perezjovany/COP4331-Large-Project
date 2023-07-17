@@ -2,13 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/components/path.dart' show buildPath;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:ui';
 import 'signup.dart';
 import 'main.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(const MyApp());
 
 //===== LoginPage Widget
 
@@ -23,6 +24,12 @@ class _LoginPageState extends State<LoginPage> {
   String message = '';
   bool seePass = true;
 
+  // Function to handle storing the token securely
+  Future<void> storeToken(String token) async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'auth_token', value: token);
+  }
+
   Future<void> doLogin() async {
     var path = await buildPath('api/login');
     var url = Uri.parse(path);
@@ -35,6 +42,10 @@ class _LoginPageState extends State<LoginPage> {
     try {
       var response = await http.post(url, headers: headers, body: body);
       var res = jsonDecode(response.body);
+      final token = res['token'];
+
+      // Store the token securely
+      await storeToken(token);
 
       if (response.statusCode == 200) {
         var user = {
@@ -57,7 +68,7 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.pushNamed(context, '/main');
         });
       } else {
-        // Error status code
+        // Other status codes
         setState(() {
           message = res['error'];
         });
@@ -211,8 +222,8 @@ class _LoginPageState extends State<LoginPage> {
 
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          primary: Colors.green,
-                          onPrimary: Colors.white,
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.green,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 100, vertical: 15),
                         ),
