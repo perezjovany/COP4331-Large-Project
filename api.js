@@ -3,8 +3,10 @@ require('mongodb');
 const axios = require('axios')
 const jwt = require('jsonwebtoken')
 
-//load user model
+// Import the required models
 const User = require("./models/user.js");
+const List = require("./models/list.js");
+const ListItem = require("./models/listItem.js");
 
 //JWT
 const jwtKey = process.env.JWT_SECRET
@@ -35,7 +37,7 @@ exports.setApp = function ( app, client )
 
   // Custom error handling middleware
   function handleError(error, res) {
-    // console.error('Error occurred:', error);
+    console.error('Error occurred:', error);
 
     if (error.name === 'ValidationError') {
       // Mongoose validation error with 400 status
@@ -200,9 +202,7 @@ exports.setApp = function ( app, client )
         return res.status(400).json({ error: "Missing required parameter 'q'" });
       }
 
-      const apiUrl = `https://api.edamam.com/auto-complete?app_id=${app_id}&app_key=${app_key}&q=${encodeURIComponent(
-        q
-      )}`;
+      const apiUrl = `https://api.edamam.com/auto-complete?app_id=${app_id}&app_key=${app_key}&q=${encodeURIComponent(q)}`;
 
       const response = await axios.get(apiUrl);
 
@@ -214,4 +214,228 @@ exports.setApp = function ( app, client )
       handleError(error, res)
     }
   });
+
+  // Endpoint URL: /api/create_list
+  // Create a new list
+  app.post('/api/create_list', authenticateToken, async (req, res, next) => {
+    try {
+      const { userId, label } = req.body;
+  
+      // Input Validation
+      if (!userId || !label) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+  
+      // Check if the list with the same label already exists for the user
+      const existingList = await List.findOne({ userId, label });
+      if (existingList) {
+        return res.status(409).json({ error: 'A list with the same name already exists' });
+      }
+  
+      const newList = new List({
+        userId: userId,
+        label: label,
+      });
+  
+      // Save the new list
+      await newList.save();
+  
+      // Retrieve the generated listId from the database
+      const savedList = await List.findOne({ userId, label });
+  
+      res.status(200).json({ listId: savedList.listId, error: "" });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  
+
+  // Endpoint URL: /api/update_list
+  // Update a list
+  app.put('/api/update_list', authenticateToken, async (req, res, next) => {
+    try {
+      const { listId, label } = req.body;
+  
+      // Input Validation
+      if (!listId || !label) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+  
+      const updatedList = await List.findOneAndUpdate({ listId: listId }, { label: label }, { new: true });
+  
+      if (!updatedList) {
+        return res.status(404).json({ error: 'List not found' });
+      }
+  
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+
+  // Endpoint URL: /api/delete_list
+  // Delete a list
+  app.delete('/api/delete_list', authenticateToken, async (req, res, next) => {
+    try {
+      const { listId } = req.body;
+
+      if (!listId) {
+        return res.status(400).json({ error: 'Missing listId' });
+      }
+
+      const deletedList = await List.findOneAndDelete({listId: listId});
+
+      if (!deletedList) {
+        return res.status(404).json({ error: 'List not found' });
+      }
+
+      // Delete all related list items
+      await ListItem.deleteMany({ listId });
+
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+  app.post('/api/create_list_item', authenticateToken, async (req, res, next) => {
+    try {
+      const { listId, label } = req.body;
+  
+      // Input Validation
+      if (!listId || !label) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+  
+      // Check if the list item with the same label already exists for the list
+      const existingListItem = await ListItem.findOne({ listId, label });
+      if (existingListItem) {
+        return res.status(409).json({ error: 'A list item with the same name already exists in this list' });
+      }
+  
+      const newItem = new ListItem({
+        listId: listId,
+        label: label,
+      });
+  
+      // Save the new list item
+      await newItem.save();
+  
+      // Retrieve the generated listItemId from the database
+      const savedItem = await ListItem.findOne({ listId, label });
+  
+      res.status(200).json({ listItemId: savedItem.listItemId, error: "" });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  
+
+  // Endpoint URL: /api/update_list_item
+  // Update a list item
+  app.put('/api/update_list_item', authenticateToken, async (req, res, next) => {
+    try {
+      const { listItemId, label, isChecked } = req.body;
+
+      // Input Validation
+      if (!listItemId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const updatedItem = await ListItem.findOneAndUpdate({listItemId: listItemId}, { label, isChecked }, { new: true });
+
+      if (!updatedItem) {
+        return res.status(404).json({ error: 'List item not found' });
+      }
+
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+  // Endpoint URL: /api/delete_list_item
+  // Delete a list item
+  app.delete('/api/delete_list_item', authenticateToken, async (req, res, next) => {
+    try {
+      const { listItemId } = req.body;
+
+      if (!listItemId) {
+        return res.status(400).json({ error: 'Missing listItemId' });
+      }
+
+      const deletedItem = await ListItem.findOneAndDelete({listItemId: listItemId});
+
+      if (!deletedItem) {
+        return res.status(404).json({ error: 'List item not found' });
+      }
+
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+
+
+
+
+  // Endpoint URL: /api/delete_list_item
+  // Get a specific list item
+  app.get('/api/get_list_item/:itemId', authenticateToken, async (req, res, next) => {
+    try {
+      const listItemId = req.params.itemId;
+
+      const listItem = await ListItem.findOne({listItemId: listItemId});
+
+      if (!listItem) {
+        return res.status(404).json({ error: 'List item not found' });
+      }
+
+      res.status(200).json(listItem);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+  // Get all list items for a specific list
+  app.get('/api/get_list_items/:listId', authenticateToken, async (req, res, next) => {
+    try {
+      const listId = req.params.listId;
+
+      const listItems = await ListItem.find({ listId });
+
+      res.status(200).json(listItems);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+  // Get all lists
+  app.get('/api/get_all_lists', authenticateToken, async (req, res, next) => {
+    try {
+      const { userId } = req.body;
+
+      // Input Validation
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing userId in the request body' });
+      }
+
+      const lists = await List.find({ userId }, { listId: 1, label: 1 });
+
+      if (!lists) {
+        return res.status(404).json({ error: 'No lists found for the user' });
+      }
+
+      res.status(200).json(lists);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  
+
 }
