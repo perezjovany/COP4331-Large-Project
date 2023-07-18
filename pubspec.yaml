@@ -1,5 +1,5 @@
-name: demo
-description: Flutter Demo Project
+name: FridgePal
+description: FridgePal Project
 
 publish_to: 'none'
 
@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+  syncfusion_flutter_calendar: ^19.4.56
   cupertino_icons: ^1.0.2
 
 dev_dependencies:

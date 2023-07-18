@@ -2,30 +2,30 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'signup.dart';
-import 'main.dart';
-
-void main() => runApp(MyApp());
-
-//===== LoginPage Widget
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
   _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
+  bool _obscureText = true;
 
-  bool seePass = true;
+  void _togglePasswordVisibility() {
+    setState(() {
+      _obscureText = !_obscureText;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       body: Container(
-        //===== BACKGROUND IMAGE: We need to change current background image due to CC
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/background.jpg"),
+            image: AssetImage("assets/background.jpg"), //  PLACEHOLDER background image, needs to be changed
             fit: BoxFit.cover,
           ),
         ),
@@ -35,17 +35,14 @@ class _LoginPageState extends State<LoginPage> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
 
-              //===== Container for frosted glass effect
-              child: BackdropFilter(
+              child: BackdropFilter( // Frosted glass effect
                 filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+
                 child: Container(
-
-                  //===== Login box size
                   width: 400,
-                  padding: EdgeInsets.all(16),
-
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    //===== Box styling, we might need better contrast here
+
                     borderRadius: BorderRadius.circular(10),
                     color: Colors.brown.withOpacity(0.05),
 
@@ -60,29 +57,23 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
 
-                  //===== Login form
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-
-                      //===== Set the logo and its size here
                       Image.asset(
-                        'assets/logo.png', // Make sure you modify pubspec.yaml if you change the filename
+                        'assets/logo.png', // Logo shown in login page
                         width: 150,
                         height: 150,
                       ),
 
-                      //===== Login box text content, might need better contrast here
-                      SizedBox(height: 50),
-                      Text("Welcome to KitchenPal", style: TextStyle(color: Colors.green, fontSize: 34, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 50),
+                      const Text("Welcome to KitchenPal", style: TextStyle(color: Colors.green, fontSize: 34, fontWeight: FontWeight.bold)), // PLACEHOLDER app name
 
-                      SizedBox(height: 20),
-                      Text("Your kitchen management made easy", style: TextStyle(color: Colors.white, fontSize: 16)),
+                      const SizedBox(height: 20),
+                      const Text("Your kitchen management made easy", style: TextStyle(color: Colors.white, fontSize: 16)), // PLACEHOLDER motto/description
 
-                      SizedBox(height: 50),
-
-                      //===== TextField for email or phone number or whatever method we're gonna use
-                      TextField(
+                      const SizedBox(height: 50), //  Text-field sections
+                      const TextField(
                         style: TextStyle(color: Colors.green),
                         decoration: InputDecoration(
                           hintText: "Email or Phone number",
@@ -93,68 +84,59 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
 
-                      //===== TextField for password with "see password" toggle
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       TextField(
-                        obscureText: seePass,
-                        style: TextStyle(color: Colors.green),
+                        obscureText: _obscureText,
+
+                        style: const TextStyle(color: Colors.green),
+
                         decoration: InputDecoration(
                           hintText: "Password",
-                          hintStyle: TextStyle(color: Colors.white),
-                          border: OutlineInputBorder(
+                          hintStyle: const TextStyle(color: Colors.white),
+                          border: const OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.white),
                           ),
 
                           suffixIcon: IconButton(
-                            icon: Icon(seePass ? Icons.visibility : Icons.visibility_off),
-                            onPressed: () {
-                              setState(() {
-                                seePass = !seePass;
-                              });
-                            },
+                            icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
+                            onPressed: _togglePasswordVisibility,
                           ),
                         ),
                       ),
 
-                      //===== Forgot Password button. No function yet.
-                      SizedBox(height: 20),
-
+                      const SizedBox(height: 20),
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
-                          child: Text("Forgot Password?", style: TextStyle(color: Colors.white)),
+                          onPressed: () {}, // Need to add functionality here
+                          child: const Text("Forgot Password?", style: TextStyle(color: Colors.white)),
                         ),
                       ),
 
-                      //===== Login Button. Right now it just navigates to '/main'
-                      SizedBox(height: 20),
-
+                      const SizedBox(height: 20),
                       ElevatedButton(
-
                         style: ElevatedButton.styleFrom(
-                          primary: Colors.green,
-                          onPrimary: Colors.white,
-                          padding: EdgeInsets.symmetric(horizontal: 100, vertical: 15),
+                          foregroundColor: Colors.white, backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 15),
                         ),
 
                         onPressed: () {
                           Navigator.pushNamed(context, '/main');
                         },
 
-                        child: Text("Login", style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text("Login", style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
 
-                      //===== SignUp Button. It navigates to SignUpPage.
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       TextButton(
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => SignUpPage()),
+                            MaterialPageRoute(builder: (context) => SignUpPage()), // PLACEHOLDER function
                           );
                         },
-                        child: Text("New to KitchenPal? Create Account", style: TextStyle(color: Colors.white)),
+
+                        child: const Text("New to KitchenPal? Create Account", style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),

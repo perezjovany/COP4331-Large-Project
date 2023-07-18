@@ -1,197 +1,124 @@
-//======= Import Statements =======
-
 import 'package:flutter/material.dart';
+import 'bottom_bar.dart';
 import 'login.dart';
 import 'signup.dart';
+import 'calendar.dart';
+import 'account.dart';
+import 'list.dart';
+import 'top_bar.dart';
 
-
-//======= Entry Point of the App =======
-
-void main() => runApp(MyApp());
-
-//======= Root Widget MyApp =======
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-
     ThemeData appTheme = ThemeData(
-        primarySwatch: Colors.green,     // Primary color
-        hintColor: Colors.greenAccent,   // Second color
-        textTheme: TextTheme(bodyText2: TextStyle(color: Colors.green[700])) // Default color for text in the app.
+      primarySwatch: Colors.green,
+      hintColor: Colors.greenAccent,
+      textTheme: TextTheme(bodyMedium: TextStyle(color: Colors.green[700])),
     );
 
+    // Handles all navigation, will need tweaking once connected to backend
     return MaterialApp(
-      // Handles navigation
       routes: {
-        '/': (context) => LoginPage(),
+        '/': (context) => const LoginPage(),
         '/signup': (context) => SignUpPage(),
-        '/main': (context) => MainPage(),
+        '/main': (context) => const MainPage(),
+        '/calendar': (context) => const CalendarPage(),
+        '/account': (context) => const AccountPage(),
+        '/list': (context) => const ListPage(),
       },
-
       theme: appTheme,
     );
   }
 }
 
-
-//======= MainPage Widget - User will land here after login =======
-
 class MainPage extends StatefulWidget {
+  const MainPage({super.key});
+
   @override
   _MainPageState createState() => _MainPageState();
 }
 
 class _MainPageState extends State<MainPage> {
+  void _onQRCodeScanPressed() {
+    //  Add QR functionality
+  }
+
+  void _onSearchChanged(String searchText) {
+    //  Add search functionality
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Size based on screen
+    final double containerWidth =
+    MediaQuery.of(context).size.width > 600 ? 600 : MediaQuery.of(context).size.width;
 
     return Scaffold(
-
-      // AppBar - Top menu bar
-      appBar: AppBar(
-        toolbarHeight: 80.0,
-        title: Padding(
-          padding: EdgeInsets.only(top: 20.0),
-          child: Image.asset(
-            'assets/white-logo.png',
-            width: 80,
-            height: 80,
-          ),
-        ),
-
-        // Options to the right of the menu bar
-        actions: <Widget>[
-          // Notification icon
-          Padding(
-            padding: EdgeInsets.only(top: 20.0, right: 10.0),
-            child: PopupMenuButton<String>(
-              icon: Icon(Icons.notifications, size: 30.0),
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-
-                const PopupMenuItem<String>(
-                  value: 'Option1',
-                  child: Text('Option 1'),
-                ),
-
-                const PopupMenuItem<String>(
-                  value: 'Option2',
-                  child: Text('Option 2'),
-                ),
-
-              ],
-            ),
-          ),
-
-          // Account icon
-          Padding(
-            padding: EdgeInsets.only(top: 20.0, right: 10.0),
-            child: PopupMenuButton<String>(
-              icon: Icon(Icons.account_circle, size: 30.0),
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-
-                const PopupMenuItem<String>(
-                  value: 'Profile',
-                  child: Text('Profile'),
-                ),
-
-                const PopupMenuItem<String>(
-                  value: 'Settings',
-                  child: Text('Settings'),
-                ),
-
-                const PopupMenuItem<String>(
-                  value: 'Logout',
-                  child: Text('Logout'),
-                ),
-              ],
-
-              onSelected: (value) {
-                if (value == 'Logout') {
-                  Navigator.pushNamed(context, '/');
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-
-      // Body
+      appBar: const topBar(title: 'Main Page'),
       body: Center(
-
         child: Container(
-          width: MediaQuery.of(context).size.width > 600 ? 600 : MediaQuery.of(context).size.width,
-          padding: EdgeInsets.all(20),
+          width: containerWidth,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(10.0),
-          ),
-
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-
-            children: <Widget>[
-              Text(
-                'Search Ingredients',
-                style: TextStyle(fontSize: 20, color: Colors.green),
-              ),
-
-              SizedBox(height: 10),
-
-              Card(
-                child: ListTile(
-                  leading: IconButton(
-                    icon: Icon(Icons.qr_code_scanner, color: Colors.green),
-                    onPressed: () {},
-                  ),
-                  title: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search',
-                      border: InputBorder.none,
-                    ),
-                    onChanged: (value) {},
-                  ),
-                  trailing: Icon(Icons.search, color: Colors.green),
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                spreadRadius: 5,
+                blurRadius: 7,
+                offset: const Offset(0, 3),
               ),
             ],
+          ),
+
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Text(
+                  'Search Ingredients', //  Change this???
+                  style: TextStyle(fontSize: 20, color: Colors.green),
+                ),
+
+                const SizedBox(height: 10),
+                Card(
+                  elevation: 8.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+
+                  child: ListTile(
+                    leading: IconButton(
+                      icon: const Icon(Icons.qr_code_scanner, color: Colors.green),
+                      onPressed: _onQRCodeScanPressed,
+                    ),
+
+                    title: TextField(
+                      decoration: const InputDecoration(
+                        hintText: 'Search',
+                        border: InputBorder.none,
+                      ),
+
+                      onChanged: _onSearchChanged,
+                    ),
+
+                    trailing: const Icon(Icons.search, color: Colors.green),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
 
-      //===== Bottom navigation bar
-
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.green,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white,
-        selectedFontSize: 14,
-        unselectedFontSize: 14,
-        type: BottomNavigationBarType.fixed,
-
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.kitchen),
-            label: 'Fridge',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Calendar',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: 'List',
-          ),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book),
-            label: 'Recipes',
-          ),
-        ],
+      bottomNavigationBar: const bottomBar(
+        selectedIndex: 0, //  Main Index
       ),
-
     );
   }
 }
