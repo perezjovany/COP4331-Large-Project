@@ -10,7 +10,6 @@ const User = require("./models/user.js");
 const jwtKey = process.env.JWT_SECRET
 const app_id = process.env.EDAMAM_ID
 const app_key = process.env.EDAMAM_KEY
-const default_limit = process.env.DEFAULT_AUTO_COMPLETE_LIMIT || 5
 
 exports.setApp = function ( app, client )
 {
@@ -36,7 +35,7 @@ exports.setApp = function ( app, client )
 
   // Custom error handling middleware
   function handleError(error, res) {
-    console.error('Error occurred:', error);
+    // console.error('Error occurred:', error);
 
     if (error.name === 'ValidationError') {
       // Mongoose validation error with 400 status
@@ -51,6 +50,11 @@ exports.setApp = function ( app, client )
     if (error.response && error.response.status === 401) {
       // Unauthorized response with 401 status
       return res.status(401).json({ error: 'Unauthorized Access', message: 'You are not authorized to access this resource' });
+    }
+
+    if (error.response && error.response.status === 403) {
+      // Forbidden response with 403 status
+      return res.status(403).json({ error: 'Forbidden', message: 'INVALID TOKEN' });
     }
 
     // Handle other specific error cases here
@@ -92,8 +96,7 @@ exports.setApp = function ( app, client )
 
       // Successful response with 200 status
       res.status(200).json({ error: '' });
-    } catch (error) {
-      console.error('Error occurred:', error);  
+    } catch (error) { 
       handleError(error, res)
     }
   });
@@ -140,7 +143,6 @@ exports.setApp = function ( app, client )
         res.status(401).json({ error: 'INCORRECT USERNAME/PASSWORD'});
       }
     } catch (error) {
-      console.error('Error occurred:', error);  
       handleError(error, res)
     }
   });
@@ -180,8 +182,7 @@ exports.setApp = function ( app, client )
   
       // Successful response with 200 status
       res.status(200).json(formattedResponse);
-    } catch (error) {
-      console.error('Error occurred:', error);  
+    } catch (error) { 
       handleError(error, res)
     }
   });
@@ -210,7 +211,6 @@ exports.setApp = function ( app, client )
       // Successful response with 200 status
       res.status(200).json(suggestions);
     } catch (error) {
-      console.error('Error occurred:', error);  
       handleError(error, res)
     }
   });
