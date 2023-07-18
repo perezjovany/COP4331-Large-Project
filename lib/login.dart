@@ -19,8 +19,9 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  TextEditingController loginNameController = TextEditingController();
-  TextEditingController loginPasswordController = TextEditingController();
+  final TextEditingController loginNameController = TextEditingController();
+  final TextEditingController loginPasswordController = TextEditingController();
+  bool _obscureText = true;
   String message = '';
   bool seePass = true;
 
@@ -98,14 +99,19 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  void _togglePasswordVisibility() {
+    setState(() {
+      _obscureText = !_obscureText;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        //===== BACKGROUND IMAGE: We need to change current background image due to CC
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/background.jpg"),
+            image: AssetImage("assets/background.jpg"), //  PLACEHOLDER background image, needs to be changed
             fit: BoxFit.cover,
           ),
         ),
@@ -115,25 +121,20 @@ class _LoginPageState extends State<LoginPage> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
 
-              //===== Container for frosted glass effect
-              child: BackdropFilter(
+              child: BackdropFilter( // Frosted glass effect
                 filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+
                 child: Container(
-                  //===== Login box size
                   width: 400,
                   padding: const EdgeInsets.all(16),
-
                   decoration: BoxDecoration(
-                    //===== Box styling, we might need better contrast here
+
                     borderRadius: BorderRadius.circular(10),
                     color: Colors.brown.withOpacity(0.05),
 
                     boxShadow: [
-                      BoxShadow(
-                          color: Colors.white.withOpacity(0.03),
-                          spreadRadius: 5),
-                      BoxShadow(
-                          color: Colors.white.withOpacity(0.03), blurRadius: 7),
+                      BoxShadow(color: Colors.white.withOpacity(0.03), spreadRadius: 5),
+                      BoxShadow(color: Colors.white.withOpacity(0.03), blurRadius: 7),
                     ],
 
                     border: Border.all(
@@ -142,48 +143,38 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
 
-                  //===== Login form
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                      //===== Set the logo and its size here
                       Image.asset(
-                        'assets/logo.png', // Make sure you modify pubspec.yaml if you change the filename
+                        'assets/logo.png', // Logo shown in login page
                         width: 150,
                         height: 150,
                       ),
 
-                      //===== Login box text content, might need better contrast here
                       const SizedBox(height: 50),
-                      const Text("Welcome to KitchenPal",
-                          style: TextStyle(
-                              color: Colors.green,
-                              fontSize: 34,
-                              fontWeight: FontWeight.bold)),
+                      const Text("Welcome to KitchenPal", style: TextStyle(color: Colors.green, fontSize: 34, fontWeight: FontWeight.bold)), // PLACEHOLDER app name
 
                       const SizedBox(height: 20),
-                      const Text("Your kitchen management made easy",
-                          style: TextStyle(color: Colors.white, fontSize: 16)),
+                      const Text("Your kitchen management made easy", style: TextStyle(color: Colors.white, fontSize: 16)), // PLACEHOLDER motto/description
 
-                      const SizedBox(height: 50),
-
-                      //===== TextField for email or phone number or whatever method we're gonna use
-                      TextField(
+                      const SizedBox(height: 50), //  Text-field sections
+                       TextField(
+                        controller: loginNameController,
                         style: const TextStyle(color: Colors.green),
                         decoration: const InputDecoration(
-                          hintText: "Username",
+                          hintText: "Email or Phone number",
                           hintStyle: TextStyle(color: Colors.white),
                           border: OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.white),
                           ),
                         ),
-                        controller: loginNameController,
                       ),
 
-                      //===== TextField for password with "see password" toggle
                       const SizedBox(height: 20),
                       TextField(
-                        obscureText: seePass,
+                        controller: loginPasswordController,
+                        obscureText: _obscureText,
                         style: const TextStyle(color: Colors.green),
                         decoration: InputDecoration(
                           hintText: "Password",
@@ -191,47 +182,35 @@ class _LoginPageState extends State<LoginPage> {
                           border: const OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.white),
                           ),
+
                           suffixIcon: IconButton(
-                            icon: Icon(seePass
-                                ? Icons.visibility
-                                : Icons.visibility_off),
-                            onPressed: () {
-                              setState(() {
-                                seePass = !seePass;
-                              });
-                            },
+                            icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
+                            onPressed: _togglePasswordVisibility,
                           ),
                         ),
-                        controller: loginPasswordController,
                       ),
 
-                      //===== Forgot Password button. No function yet.
                       const SizedBox(height: 20),
-
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
-                          child: const Text("Forgot Password?",
-                              style: TextStyle(color: Colors.white)),
+                          onPressed: () {}, // Need to add functionality here
+                          child: const Text("Forgot Password?", style: TextStyle(color: Colors.white)),
                         ),
                       ),
 
-                      //===== Login Button. Right now it just navigates to '/main'
                       const SizedBox(height: 20),
-
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.green,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 100, vertical: 15),
+                          foregroundColor: Colors.white, backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 15),
                         ),
+
                         onPressed: () {
                           doLogin();
                         },
-                        child: const Text("Login",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+
+                        child: const Text("Login", style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
 
                       // Display error message
@@ -247,18 +226,16 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
 
-                      //===== SignUp Button. It navigates to SignUpPage.
                       const SizedBox(height: 20),
                       TextButton(
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                                builder: (context) => SignUpPage()),
+                            MaterialPageRoute(builder: (context) => SignUpPage()), // PLACEHOLDER function
                           );
                         },
-                        child: const Text("New to KitchenPal? Create Account",
-                            style: TextStyle(color: Colors.white)),
+
+                        child: const Text("New to KitchenPal? Create Account", style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),

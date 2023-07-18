@@ -11,6 +11,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'bottom_bar.dart';
+import 'calendar.dart';
+import 'account.dart';
+import 'list.dart';
+import 'top_bar.dart';
+
 
 //======= Entry Point of the App =======
 
@@ -24,19 +30,20 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     ThemeData appTheme = ThemeData(
-        primarySwatch: Colors.green, // Primary color
-        hintColor: Colors.greenAccent, // Second color
-        textTheme: TextTheme(
-            bodyMedium: TextStyle(
-                color: Colors.green[700])) // Default color for text in the app.
-        );
+      primarySwatch: Colors.green,
+      hintColor: Colors.greenAccent,
+      textTheme: TextTheme(bodyMedium: TextStyle(color: Colors.green[700])),
+    );
 
     return MaterialApp(
       // Handles navigation
       routes: {
         '/': (context) => LoginPage(),
-        '/signup': (context) => SignUpPage(),
+        '/signup': (context) => const SignUpPage(),
         '/main': (context) => const MainPage(),
+        '/calendar': (context) => const CalendarPage(),
+        '/account': (context) => const AccountPage(),
+        '/list': (context) => const ListPage(),
       },
 
       theme: appTheme,
@@ -156,144 +163,77 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  void _onSearchChanged(String searchText) {
+    //  Add search functionality
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Size based on screen
+    final double containerWidth = MediaQuery.of(context).size.width > 600
+        ? 600
+        : MediaQuery.of(context).size.width;
+
     return Scaffold(
-      // AppBar - Top menu bar
-      appBar: AppBar(
-        toolbarHeight: 80.0,
-        title: Padding(
-          padding: const EdgeInsets.only(top: 20.0),
-          child: Image.asset(
-            'assets/white-logo.png',
-            width: 80,
-            height: 80,
-          ),
-        ),
-
-        // Options to the right of the menu bar
-        actions: <Widget>[
-          // Notification icon
-          Padding(
-            padding: const EdgeInsets.only(top: 20.0, right: 10.0),
-            child: PopupMenuButton<String>(
-              icon: const Icon(Icons.notifications, size: 30.0),
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
-                  value: 'Option1',
-                  child: Text('Option 1'),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'Option2',
-                  child: Text('Option 2'),
-                ),
-              ],
-            ),
-          ),
-
-          // Account icon
-          Padding(
-            padding: const EdgeInsets.only(top: 20.0, right: 10.0),
-            child: PopupMenuButton<String>(
-              icon: const Icon(Icons.account_circle, size: 30.0),
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
-                  value: 'Profile',
-                  child: Text('Profile'),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'Settings',
-                  child: Text('Settings'),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'Logout',
-                  child: Text('Logout'),
-                ),
-              ],
-              onSelected: (value) {
-                if (value == 'Logout') {
-                  Navigator.pushNamed(context, '/');
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-
-      // Body
+      appBar: const topBar(title: 'Main Page'),
       body: Center(
         child: Container(
-          width: MediaQuery.of(context).size.width > 600
-              ? 600
-              : MediaQuery.of(context).size.width,
-          padding: const EdgeInsets.all(20),
+          width: containerWidth,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(10.0),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Text(
-                'Search Ingredients',
-                style: TextStyle(fontSize: 20, color: Colors.green),
-              ),
-              const SizedBox(height: 10),
-              Card(
-                child: ListTile(
-                  leading: IconButton(
-                    icon:
-                        const Icon(Icons.qr_code_scanner, color: Colors.green),
-                    onPressed: () async {
-                      await _showBarcodeScanner();
-                      if (_scanResult.isNotEmpty) {
-                        await parse(_scanResult);
-                        _scanResult = "";
-                      }
-                    },
-                  ),
-                  title: TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'Search',
-                      border: InputBorder.none,
-                    ),
-                    onChanged: (value) {},
-                  ),
-                  trailing: const Icon(Icons.search, color: Colors.green),
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.3),
+                spreadRadius: 5,
+                blurRadius: 7,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Text(
+                  'Search Ingredients', //  Change this???
+                  style: TextStyle(fontSize: 20, color: Colors.green),
+                ),
+                const SizedBox(height: 10),
+                Card(
+                  elevation: 8.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ListTile(
+                    leading: IconButton(
+                        icon: const Icon(Icons.qr_code_scanner,
+                            color: Colors.green),
+                        onPressed: () async {
+                          await _showBarcodeScanner();
+                          if (_scanResult.isNotEmpty) {
+                            await parse(_scanResult);
+                            _scanResult = "";
+                          }
+                        }),
+                    title: TextField(
+                      decoration: const InputDecoration(
+                        hintText: 'Search',
+                        border: InputBorder.none,
+                      ),
+                      onChanged: _onSearchChanged,
+                    ),
+                    trailing: const Icon(Icons.search, color: Colors.green),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
-
-      //===== Bottom navigation bar
-
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.green,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white,
-        selectedFontSize: 14,
-        unselectedFontSize: 14,
-        type: BottomNavigationBarType.fixed,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.kitchen),
-            label: 'Fridge',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Calendar',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: 'List',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book),
-            label: 'Recipes',
-          ),
-        ],
+      bottomNavigationBar: const bottomBar(
+        selectedIndex: 0, //  Main Index
       ),
     );
   }
