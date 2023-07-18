@@ -34,6 +34,31 @@ exports.setApp = function ( app, client )
     });
   }
 
+  // Custom error handling middleware
+  function handleError(error, res) {
+    console.error('Error occurred:', error);
+
+    if (error.name === 'ValidationError') {
+      // Mongoose validation error with 400 status
+      return res.status(400).json({ error: 'Validation Error', message: error.message });
+    }
+
+    if (error.name === 'MongoError') {
+      // MongoDB related error with 500 status
+      return res.status(500).json({ error: 'Database Error', message: 'A database error occurred' });
+    }
+
+    if (error.response && error.response.status === 401) {
+      // Unauthorized response with 401 status
+      return res.status(401).json({ error: 'Unauthorized Access', message: 'You are not authorized to access this resource' });
+    }
+
+    // Handle other specific error cases here
+
+    // Generic error message for unhandled errors
+    res.status(500).json({ error: 'Internal Server Error', message: 'An unexpected error occurred' });
+  }
+
   // Endpoint URL: /api/signup
   // HTTP Method: POST
   app.post('/api/signup', async (req, res, next) => {
@@ -68,21 +93,8 @@ exports.setApp = function ( app, client )
       // Successful response with 200 status
       res.status(200).json({ error: '' });
     } catch (error) {
-      // Error Handling
-      console.error('Error occurred:', error);
-
-      if (error.name === 'ValidationError') {
-        // Mongoose validation error with 400 status
-        return res.status(400).json({ error: error.message });
-      }
-
-      if (error.name === 'MongoError') {
-        // MongoDB related error with 500 status
-        return res.status(500).json({ error: 'Database error' });
-      }
-
-      // For other unhandled errors with 500 status
-      res.status(500).json({ error: 'Something went wrong' });
+      console.error('Error occurred:', error);  
+      handleError(error, res)
     }
   });
 
@@ -128,16 +140,8 @@ exports.setApp = function ( app, client )
         res.status(401).json({ error: 'INCORRECT USERNAME/PASSWORD'});
       }
     } catch (error) {
-      // Error Handling
-      console.error('Error occurred:', error);
-  
-      if (error.name === 'MongoError') {
-        // MongoDB related error with 500 status
-        return res.status(500).json({ error: 'DATABASE ERROR' });
-      }
-  
-      // For other unhandled errors with 500 status
-      res.status(500).json({ error: 'SOMETHING WENT WRONG' });
+      console.error('Error occurred:', error);  
+      handleError(error, res)
     }
   });
 
@@ -177,16 +181,8 @@ exports.setApp = function ( app, client )
       // Successful response with 200 status
       res.status(200).json(formattedResponse);
     } catch (error) {
-      // Error Handling
-      console.error('Error occurred:', error);
-  
-      if (error.response && error.response.status === 401) {
-        // Unauthorized response with 401 status
-        res.status(401).json({ error: 'UNAUTHORIZED' });
-      } else {
-        // For other unhandled errors with 500 status
-        res.status(500).json({ error: 'SOMETHING WENT WRONG' });
-      }
+      console.error('Error occurred:', error);  
+      handleError(error, res)
     }
   });
 
@@ -214,16 +210,8 @@ exports.setApp = function ( app, client )
       // Successful response with 200 status
       res.status(200).json(suggestions);
     } catch (error) {
-      // Error Handling
-      console.error('Error occurred:', error);
-
-      if (error.response && error.response.status === 401) {
-        // Unauthorized response with 401 status
-        res.status(401).json({ error: 'UNAUTHORIZED' });
-      } else {
-        // For other unhandled errors with 500 status
-        res.status(500).json({ error: 'SOMETHING WENT WRONG' });
-      }
+      console.error('Error occurred:', error);  
+      handleError(error, res)
     }
-  });  
+  });
 }
