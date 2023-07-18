@@ -10,6 +10,7 @@ const User = require("./models/user.js");
 const jwtKey = process.env.JWT_SECRET
 const app_id = process.env.EDAMAM_ID
 const app_key = process.env.EDAMAM_KEY
+const default_limit = process.env.DEFAULT_AUTO_COMPLETE_LIMIT || 5
 
 exports.setApp = function ( app, client )
 {
@@ -188,5 +189,41 @@ exports.setApp = function ( app, client )
       }
     }
   });
-  
+
+  // Endpoint URL: /api/manual_search
+  // HTTP Method: POST
+  app.post('/api/manual_search', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: q, limit (optional)
+      // outgoing: suggestions
+
+      const { q } = req.body;
+
+      if (!q) {
+        return res.status(400).json({ error: "Missing required parameter 'q'" });
+      }
+
+      const apiUrl = `https://api.edamam.com/auto-complete?app_id=${app_id}&app_key=${app_key}&q=${encodeURIComponent(
+        q
+      )}`;
+
+      const response = await axios.get(apiUrl);
+
+      const suggestions = response.data || [];
+
+      // Successful response with 200 status
+      res.status(200).json(suggestions);
+    } catch (error) {
+      // Error Handling
+      console.error('Error occurred:', error);
+
+      if (error.response && error.response.status === 401) {
+        // Unauthorized response with 401 status
+        res.status(401).json({ error: 'UNAUTHORIZED' });
+      } else {
+        // For other unhandled errors with 500 status
+        res.status(500).json({ error: 'SOMETHING WENT WRONG' });
+      }
+    }
+  });  
 }
