@@ -36,6 +36,12 @@ const UserSchema = new Schema({
     type: String,
     required: true,
     // Description: The user's phone number (required)
+  },
+  isVerified: {
+    type: Boolean,
+    required: false,
+    default: false
+    // Description: The user's verified status
   }
 });
 
