@@ -1,7 +1,7 @@
 require('express');
 require('mongodb');
-const axios = require('axios')
-const jwt = require('jsonwebtoken')
+const axios = require('axios');
+const jwt = require('jsonwebtoken');
 
 // Import the required models
 const User = require("./models/user.js");
@@ -12,6 +12,18 @@ const ListItem = require("./models/listItem.js");
 const jwtKey = process.env.JWT_SECRET
 const app_id = process.env.EDAMAM_ID
 const app_key = process.env.EDAMAM_KEY
+
+//Email
+const nodemailer = require("nodemailer");
+const emailTransport = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: 'kitchenpal.cop4331@gmail.com',
+    pass: 'alxkamgubxqorppk'
+  }
+});
 
 exports.setApp = function ( app, client )
 {
@@ -94,11 +106,57 @@ exports.setApp = function ( app, client )
         phone: phone
       });
 
+      //Save to DB
       await newUser.save();
+
+      //Send the email verification email.
+      const info = await emailTransport.sendMail({
+        from: '"Kitchen Pal" <kitchenpal.cop4331@gmail.com>', // sender address
+        to: email, // list of receivers
+        subject: "Please Verify your Email ✔", // Subject line
+        html: "<b>Please click <a href='http://localhost:5000/api/verifyemail/" + email + "'>here</a> to verify your email.</b>", // html body
+      });
+
+      console.log("Message sent: %s", info.messageId);
 
       // Successful response with 200 status
       res.status(200).json({ error: '' });
     } catch (error) { 
+      handleError(error, res)
+    }
+  });
+
+  //Verify email address
+  app.get('/api/verifyemail/:email', async (req, res, next) => {
+    try {
+
+
+      const email = req.params.email;
+
+      // Input Validation
+      if (!email) {
+        return res.status(400).json({ error: 'MISSING EMAIL.' });
+      }
+
+      //Get the user from the email.
+      const results = await User.find({ email });
+
+      let response = {
+        error: ''
+      };
+
+      if (results.length > 0) {
+
+        //Update the verified flag
+        await User.findOneAndUpdate({ email: email }, { isVerified: true });
+
+        // Successful response with 200 status
+        res.redirect(302, "https://cop4331-20-fcdfeeaee1d5.herokuapp.com/");
+      } else {
+        // Unauthorized response with 401 status
+        res.status(401).json({ error: 'Invalid Email.'});
+      }
+    } catch (error) {
       handleError(error, res)
     }
   });
@@ -125,8 +183,14 @@ exports.setApp = function ( app, client )
       };
   
       if (results.length > 0) {
-        const { userId, firstName, lastName, email, phone } = results[0];
+        const { userId, firstName, lastName, email, phone, isVerified } = results[0];
         const jwtToken = jwt.sign({ id: userId }, jwtKey);
+
+        //Check for email verification
+        if (!isVerified) {
+          res.status(401).json({ error: 'EMAIL NOT VERIFIED'});
+          return;
+        }
   
         response = {
           userId,
@@ -435,7 +499,4 @@ exports.setApp = function ( app, client )
       handleError(error, res);
     }
   });
-  
-  
-
 }
