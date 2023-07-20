@@ -3,6 +3,9 @@ require('mongodb');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 
+//Environment ENV
+const environment = process.env.ENVIRONMENT
+
 // Import the required models
 const User = require("./models/user.js");
 const List = require("./models/list.js");
@@ -109,12 +112,15 @@ exports.setApp = function ( app, client )
       //Save to DB
       await newUser.save();
 
+      //Get the email verification url
+      var verificationUrl = environment == 'Dev' ? ("http://localhost:5000/api/verifyemail/" + email) : ("http://cop4331-20-fcdfeeaee1d5.herokuapp.com:5000/api/verifyemail/" + email)
+
       //Send the email verification email.
       const info = await emailTransport.sendMail({
         from: '"Kitchen Pal" <kitchenpal.cop4331@gmail.com>', // sender address
         to: email, // list of receivers
         subject: "Please Verify your Email ✔", // Subject line
-        html: "<b>Please click <a href='http://localhost:5000/api/verifyemail/" + email + "'>here</a> to verify your email.</b>", // html body
+        html: "<b>Please click <a href='" + verificationUrl + "'>here</a> to verify your email.</b>", // html body
       });
 
       console.log("Message sent: %s", info.messageId);
