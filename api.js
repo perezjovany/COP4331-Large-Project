@@ -436,6 +436,103 @@ exports.setApp = function ( app, client )
     }
   });
   
-  
+  // Endpoint URL: /api/nutrients
+// HTTP Method: POST
+app.post('/api/nutrients', authenticateToken, async (req, res, next) => {
+  try {
+    // incoming: ingredients
+    // outgoing: text, foodResults, nextPage
+
+    const { ingredient } = req.body; // Update the destructuring
+    
+     if (!ingredient) {
+      return res.status(400).json({ error: "Missing required parameter 'ingredient'" });
+    }
+    
+     var apiUrl = `https://api.edamam.com/api/food-database/v2/nutrients?app_id=fefdf589&app_key=9e9888ef9ae615432880caca72ed49f3`;
+
+     const requestBody = {
+      ingredients: ingredient.map(ingredient => ({
+      quantity: ingredient.quantity,
+      measureURI: ingredient.measureURI,
+      qualifiers: ingredient.qualifiers || [],
+      foodId: ingredient.foodId,
+      })),
+    };
+ 
+    const response = await axios.get(apiUrl, requestBody);
+
+    const text = response.data.text;
+    const foodResults = response.data.hints || [];
+    const nextPage = response.data._links || null;
+
+    const formattedResponse = {
+      text: text,
+      foodResults: foodResults,
+      nextPage: nextPage,
+    };
+
+    // Successful response with 200 status
+    res.status(200).json(formattedResponse);
+  } catch (error) {
+    // Error Handling
+    console.error('Error occurred:', error);
+
+    if (error.response && error.response.status === 401) {
+      // Unauthorized response with 401 status
+      res.status(401).json({ error: 'UNAUTHORIZED' });
+    } else {
+      // For other unhandled errors with 500 status
+      res.status(500).json({ error: 'SOMETHING WENT WRONG' });
+    }
+  }
+});
+
+
+  // Endpoint URL: /api/add_to_fridge
+  // HTTP Method: POST
+  app.post('/api/add_to_fridge', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userid, experationDate, foodLabel, totalCalories, measure, ingredient
+      // outgoing: error
+
+      const { userid, experationDate, foodLabel, totalCalories, measure, ingredients } = req.body;
+
+      // Input Validation
+      if (!userid || !experationDate || !foodLabel || !totalCalories || !measure || !ingredients) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const newFridgeItem = new fridgeItem({
+        userId: userid,
+        expirationDate: experationDate,
+        foodLabel: foodLabel,
+        totalCalories: totalCalories,
+        measure: measure,
+        ingredients: ingredients
+      });
+
+      await newFridgeItem.save();
+
+      // Successful response with 200 status
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      // Error Handling
+      console.error('Error occurred:', error);
+
+      if (error.name === 'ValidationError') {
+        // Mongoose validation error with 400 status
+        return res.status(400).json({ error: error.message });
+      }
+
+      if (error.name === 'MongoError') {
+        // MongoDB related error with 500 status
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      // For other unhandled errors with 500 status
+      res.status(500).json({ error: 'Something went wrong' });
+    }
+  });
 
 }
