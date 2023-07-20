@@ -18,6 +18,7 @@ const app_key = process.env.EDAMAM_KEY
 
 //Email
 const nodemailer = require("nodemailer");
+const apiPort = process.env.PORT || 5000;
 const emailTransport = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
@@ -113,7 +114,7 @@ exports.setApp = function ( app, client )
       await newUser.save();
 
       //Get the email verification url
-      var verificationUrl = environment == 'Dev' ? ("http://localhost:5000/api/verifyemail/" + email) : ("http://cop4331-20-fcdfeeaee1d5.herokuapp.com:5000/api/verifyemail/" + email)
+      var verificationUrl = environment == 'Development' ? ("http://localhost:" + apiPort + "/api/verifyemail/" + email) : ("http://cop4331-20-fcdfeeaee1d5.herokuapp.com:" + apiPort + "/api/verifyemail/" + email)
 
       //Send the email verification email.
       const info = await emailTransport.sendMail({
