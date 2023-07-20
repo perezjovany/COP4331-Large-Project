@@ -16,9 +16,11 @@ Future<String> buildPath(String route) async {
   } else {
     // Running on mobile platform
     if (Platform.isAndroid) {
-      return 'http://10.0.2.2:5000/$route';
-    } else if (address.isNotEmpty) {
-      return 'http://$address:5000/$route';
+      if (address.isNotEmpty) {
+        return 'http://$address:5000/$route';
+      } else {
+        return 'http://10.0.2.2:5000/$route';
+      }
     } else {
       return 'http://localhost:5000/$route';
     }
