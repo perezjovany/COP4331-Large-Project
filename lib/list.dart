@@ -204,6 +204,64 @@ class State_List extends State<ListPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadLists();
+  }
+
+  Future<void> _loadLists() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
+      var userId = userData['userId'];
+
+      var path = await buildPath('api/get_all_lists');
+      var url = Uri.parse(path);
+      var token = await getToken();
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      };
+      var body = jsonEncode({'userId': userId});
+
+      var response = await http.post(url, headers: headers, body: body);
+      print('Status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        for (var listData in res) {
+          var listItemsPath =
+              await buildPath('api/get_list_items/${listData['listId']}');
+          var listItemsUrl = Uri.parse(listItemsPath);
+
+          var listItemsResponse =
+              await http.get(listItemsUrl, headers: headers);
+          var listItemsRes = jsonDecode(listItemsResponse.body);
+
+          List<Item> items = [];
+          if (listItemsResponse.statusCode == 200) {
+            for (var listItemData in listItemsRes) {
+              items.add(Item(listItemData['title'], listItemData['checked'],
+                  listItemData['userId']));
+            }
+          }
+
+          CheckList checkList =
+              CheckList(listData['title'], items, listData['userId']);
+          setState(() {
+            _checkLists.add(checkList);
+          });
+        }
+      } else {
+        _showErrorDialog(res['error']);
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const topBar(title: 'Your Lists'), // Page Title
