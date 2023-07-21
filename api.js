@@ -651,6 +651,34 @@ exports.setApp = function ( app, client )
       handleError(error, res);
     }
   });
+
+  // Endpoint URL: /api/get_all_fridge_items
+  // HTTP Method: GET
+  app.get('/api/get_all_fridge_items', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userId
+      // outgoing: fridgeItemIds
+
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const fridgeItems = await FridgeItem.find({ userId: userId }, 'fridgeItemId');
+
+      if (!fridgeItems) {
+        return res.status(404).json({ error: 'No fridge items found for the given user' });
+      }
+
+      // Extracting fridgeItemId from each fridgeItem
+      const fridgeItemIds = fridgeItems.map(item => item.fridgeItemId);
+
+      res.status(200).json(fridgeItemIds);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
   
   // Endpoint URL: /api/delete_fridge_item
   // HTTP Method: DELETE
