@@ -10,6 +10,7 @@ const environment = process.env.ENVIRONMENT
 const User = require("./models/user.js");
 const List = require("./models/list.js");
 const ListItem = require("./models/listItem.js");
+const FridgeItem = require("./models/fridgeItem.js");
 
 //JWT
 const jwtKey = process.env.JWT_SECRET
@@ -502,6 +503,175 @@ exports.setApp = function ( app, client )
       }
 
       res.status(200).json(lists);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/nutrients
+  // HTTP Method: POST
+  app.post('/api/nutrients', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: ingredients
+      // outgoing: response
+
+      const { ingredients } = req.body; // Update the destructuring
+
+      if (!ingredients) {
+        return res.status(400).json({ error: "Missing required parameter 'ingredients'" });
+      }
+
+      var apiUrl = `https://api.edamam.com/api/food-database/v2/nutrients?app_id=${app_id}&app_key=${app_key}`;
+
+      const requestBody = {
+        ingredients: ingredients.map((ingredient) => ({
+          quantity: ingredient.quantity,
+          measureURI: ingredient.measureURI,
+          qualifiers: ingredient.qualifiers || [],
+          foodId: ingredient.foodId,
+        })),
+      };
+
+      const response = await axios.post(apiUrl, requestBody);
+
+      // Handle the provided output
+      const nutrientData = response.data;
+      const responseObj = {
+        uri: nutrientData.uri,
+        calories: nutrientData.calories,
+        totalWeight: nutrientData.totalWeight,
+        dietLabels: nutrientData.dietLabels,
+        healthLabels: nutrientData.healthLabels,
+        cautions: nutrientData.cautions,
+        totalNutrients: nutrientData.totalNutrients,
+        totalDaily: nutrientData.totalDaily,
+        ingredients: nutrientData.ingredients.map((ingredientData) => ({
+          parsed: ingredientData.parsed,
+        })),
+      };
+
+      // Successful response with 200 status
+      res.status(200).json(responseObj);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+
+
+  // Endpoint URL: /api/create_fridgeItem
+  // HTTP Method: POST
+  app.post('/api/create_fridge_item', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userid, expirationDate, foodLabel, totalCalories, measure, ingredient
+      // outgoing: error
+
+      const { userId, expirationDate, foodLabel, totalCalories, measure, ingredients } = req.body;
+
+      // Input Validation
+      if (!userId || !expirationDate || !foodLabel || !totalCalories || !measure || !ingredients) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const newFridgeItem = new FridgeItem({
+        userId: userId,
+        expirationDate: expirationDate,
+        foodLabel: foodLabel,
+        totalCalories: totalCalories,
+        measure: measure,
+        ingredients: ingredients
+      });
+
+      await newFridgeItem.save();
+
+      // Successful response with 200 status
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/update_fridge_item
+  // HTTP Method: PUT
+  app.put('/api/update_fridge_item', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: fridgeItemId, experationDate, foodLabel, totalCalories, measure, ingredients
+      // outgoing: error
+  
+      const { fridgeItemId, expirationDate, foodLabel, totalCalories, measure, ingredients } = req.body;
+  
+      // Input Validation
+      if (!fridgeItemId || !expirationDate || !foodLabel || !totalCalories || !measure || !ingredients) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+  
+      const updatedFridgeItem = await FridgeItem.findOneAndUpdate(
+        { fridgeItemId: fridgeItemId },
+        {
+          expirationDate: expirationDate,
+          foodLabel: foodLabel,
+          totalCalories: totalCalories,
+          measure: measure,
+          ingredients: ingredients
+        },
+        { new: true } // Returns the updated item
+      );
+  
+      if (!updatedFridgeItem) {
+        return res.status(404).json({ error: 'Fridge item not found' });
+      }
+  
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/get_fridge_item
+  // HTTP Method: GET
+  app.get('/api/get_fridge_item', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: fridgeItemId
+      // outgoing: fridgeItem
+  
+      const { fridgeItemId } = req.body;
+  
+      if (!fridgeItemId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+  
+      const fridgeItem = await FridgeItem.findOne({ fridgeItemId: fridgeItemId });
+  
+      if (!fridgeItem) {
+        return res.status(404).json({ error: 'Fridge item not found' });
+      }
+  
+      res.status(200).json({ fridgeItem });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/delete_fridge_item
+  // HTTP Method: DELETE
+  app.delete('/api/delete_fridge_item', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: fridgeItemId
+      // outgoing: error
+
+      const { fridgeItemId } = req.body;
+
+      if (!fridgeItemId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const deletedFridgeItem = await FridgeItem.findOneAndDelete({ fridgeItemId: fridgeItemId });
+
+      if (!deletedFridgeItem) {
+        return res.status(404).json({ error: 'Fridge item not found' });
+      }
+
+      res.status(200).json({ error: '' });
     } catch (error) {
       handleError(error, res);
     }
