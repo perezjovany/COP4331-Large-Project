@@ -9,16 +9,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class Item {
   final String title;
-  final String userId;
+  final String? userId;
   bool checked;
 
   Item(this.title, this.checked, this.userId);
 }
 
 class CheckList {
-  final String title;
-  final String userId;
-  final List<Item> items;
+  String title;
+  List<Item> items;
+  String? userId; 
 
   CheckList(this.title, this.items, this.userId);
 }
@@ -210,76 +210,80 @@ class State_List extends State<ListPage> {
     _loadLists();
   }
 
-  Future<void> _loadLists() async {
-    print("loading lists");
+Future<void> _loadLists() async {
+  print("loading lists");
+  try {
+    print("try block");
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
+    var userId = userData['userId'].toString();
+
+    var path = await buildPath('api/get_all_lists/$userId');
+    print('Path: $path');
+    var url = Uri.parse(path);
+    print('Built URL: $url');
+
+    var token = await getToken();
+    print("got token: $token");
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
+    print('Headers: $headers');
+
+    var response = await http.get(url, headers: headers);
+    print('Status code: ${response.statusCode}');
+    print('Response body: ${response.body}');
+    var res;
     try {
-      print("try block");
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
-      var userId = userData['userId'];
+      res = jsonDecode(response.body);
+      print('Decoded response: $res');
+    } catch (e) {
+      print('Error decoding response: $e');
+      return;
+    }
 
-      var path = await buildPath('api/get_all_lists');
-      print("built path");
-      print('Path: $path');
-      print('UserID: $userId');
-      var url = Uri.parse(path).replace(queryParameters: {'userId': userId});
-      print("built url");
-      var token = await getToken();
-      print("got token");
-      var headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      };
-      print("try block exited");
-
-      var response = await http.get(url, headers: headers);
-      print('Status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-      var res;
+    if (response.statusCode == 200) {
       try {
-        res = jsonDecode(response.body);
-        print('Decoded response: $res');
+        for (var listData in res) {
+          print(
+              'List data: _id: ${listData['_id']}, label: ${listData['label']}, listId: ${listData['listId']}');
+          var listItemsPath =
+              await buildPath('api/get_list_items/${listData['listId']}');
+          var listItemsUrl = Uri.parse(listItemsPath);
+
+          var listItemsResponse =
+              await http.get(listItemsUrl, headers: headers);
+          var listItemsRes = jsonDecode(listItemsResponse.body);
+
+          List<Item> items = [];
+          if (listItemsResponse.statusCode == 200 && listItemsRes != null) {
+            for (var listItemData in listItemsRes) {
+              var title = listItemData['title'] ?? 'Unknown Title'; // set default value for null title
+              var checked = listItemData['checked'] ?? false; // set default value for null checked
+              var userId = listItemData['userId'] ?? 'Unknown User'; // set default value for null userId
+              print('List item data: title: $title, checked: $checked, userId: $userId');
+              items.add(Item(title, checked, userId));
+            }
+          }
+
+          CheckList checkList =
+              CheckList(listData['label'], items, listData['userId']);
+          setState(() {
+            _checkLists.add(checkList);
+          });
+        }
       } catch (e) {
-        print('Error decoding response: $e');
+        print('Error processing response data: $e');
         return;
       }
-
-      if (response.statusCode == 200) {
-        try {
-          for (var listData in res) {
-            var listItemsPath =
-                await buildPath('api/get_list_items/${listData['listId']}');
-            var listItemsUrl = Uri.parse(listItemsPath);
-
-            var listItemsResponse =
-                await http.get(listItemsUrl, headers: headers);
-            var listItemsRes = jsonDecode(listItemsResponse.body);
-
-            List<Item> items = [];
-            if (listItemsResponse.statusCode == 200) {
-              for (var listItemData in listItemsRes) {
-                items.add(Item(listItemData['title'], listItemData['checked'],
-                    listItemData['userId']));
-              }
-            }
-
-            CheckList checkList =
-                CheckList(listData['title'], items, listData['userId']);
-            setState(() {
-              _checkLists.add(checkList);
-            });
-          }
-        } catch (e) {
-          print('Error processing response data: $e');
-          return;
-        }
-      } else {
-        _showErrorDialog(res['error']);
-      }
-    } catch (e) {
-      _showErrorDialog(e.toString());
+    } else {
+      _showErrorDialog(res['error']);
     }
+  } catch (e) {
+    _showErrorDialog(e.toString());
   }
+}
 
   @override
   Widget build(BuildContext context) {
