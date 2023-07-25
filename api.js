@@ -487,9 +487,9 @@ exports.setApp = function ( app, client )
   });
 
   // Get all lists
-  app.get('/api/get_all_lists', authenticateToken, async (req, res, next) => {
+  app.get('/api/get_all_lists/:userId', authenticateToken, async (req, res, next) => {
     try {
-      const { userId } = req.body;
+      const userId = req.params.userId;
 
       // Input Validation
       if (!userId) {
