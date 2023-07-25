@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/components/path.dart' show buildPath;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:ui';
@@ -26,12 +25,6 @@ class _SignUpPageState extends State<SignUpPage> {
   String message = '';
   bool seePass = true;
 
-  // Function to handle storing the token securely
-  Future<void> storeToken(String token) async {
-    const storage = FlutterSecureStorage();
-    await storage.write(key: 'auth_token', value: token);
-  }
-
   Future<void> doSignup() async {
     var path = await buildPath('api/signup');
     var url = Uri.parse(path);
@@ -48,12 +41,8 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       var response = await http.post(url, headers: headers, body: body);
       var res = jsonDecode(response.body);
-      final token = res['token'];
 
       if (response.statusCode == 200) {
-        // Store the token securely
-        await storeToken(token);
-
         // Store user data in SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_data', jsonEncode(body));
@@ -63,7 +52,7 @@ class _SignUpPageState extends State<SignUpPage> {
         });
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.pushNamed(context, '/main');
+          Navigator.pushNamed(context, '/');
         });
       } else {
         // Other status codes
