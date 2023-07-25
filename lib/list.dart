@@ -98,7 +98,8 @@ class State_List extends State<ListPage> {
 
         if (response.statusCode == 200) {
           setState(() {
-            checkList.items.add(Item(title, false, res['listItemId'].toString()));
+            checkList.items
+                .add(Item(title, false, res['listItemId'].toString()));
             _newCheckListController.clear();
           });
         } else {
@@ -210,48 +211,67 @@ class State_List extends State<ListPage> {
   }
 
   Future<void> _loadLists() async {
+    print("loading lists");
     try {
+      print("try block");
       SharedPreferences prefs = await SharedPreferences.getInstance();
       var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
       var userId = userData['userId'];
 
       var path = await buildPath('api/get_all_lists');
-      var url = Uri.parse(path);
+      print("built path");
+      print('Path: $path');
+      print('UserID: $userId');
+      var url = Uri.parse(path).replace(queryParameters: {'userId': userId});
+      print("built url");
       var token = await getToken();
+      print("got token");
       var headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token'
       };
-      var body = jsonEncode({'userId': userId});
+      print("try block exited");
 
-      var response = await http.post(url, headers: headers, body: body);
+      var response = await http.get(url, headers: headers);
       print('Status code: ${response.statusCode}');
       print('Response body: ${response.body}');
-      var res = jsonDecode(response.body);
+      var res;
+      try {
+        res = jsonDecode(response.body);
+        print('Decoded response: $res');
+      } catch (e) {
+        print('Error decoding response: $e');
+        return;
+      }
 
       if (response.statusCode == 200) {
-        for (var listData in res) {
-          var listItemsPath =
-              await buildPath('api/get_list_items/${listData['listId']}');
-          var listItemsUrl = Uri.parse(listItemsPath);
+        try {
+          for (var listData in res) {
+            var listItemsPath =
+                await buildPath('api/get_list_items/${listData['listId']}');
+            var listItemsUrl = Uri.parse(listItemsPath);
 
-          var listItemsResponse =
-              await http.get(listItemsUrl, headers: headers);
-          var listItemsRes = jsonDecode(listItemsResponse.body);
+            var listItemsResponse =
+                await http.get(listItemsUrl, headers: headers);
+            var listItemsRes = jsonDecode(listItemsResponse.body);
 
-          List<Item> items = [];
-          if (listItemsResponse.statusCode == 200) {
-            for (var listItemData in listItemsRes) {
-              items.add(Item(listItemData['title'], listItemData['checked'],
-                  listItemData['userId']));
+            List<Item> items = [];
+            if (listItemsResponse.statusCode == 200) {
+              for (var listItemData in listItemsRes) {
+                items.add(Item(listItemData['title'], listItemData['checked'],
+                    listItemData['userId']));
+              }
             }
-          }
 
-          CheckList checkList =
-              CheckList(listData['title'], items, listData['userId']);
-          setState(() {
-            _checkLists.add(checkList);
-          });
+            CheckList checkList =
+                CheckList(listData['title'], items, listData['userId']);
+            setState(() {
+              _checkLists.add(checkList);
+            });
+          }
+        } catch (e) {
+          print('Error processing response data: $e');
+          return;
         }
       } else {
         _showErrorDialog(res['error']);
