@@ -221,6 +221,28 @@ exports.setApp = function ( app, client )
     }
   });
 
+  // Endpoint URL: /api/delete_user
+  // Delete a user
+  app.delete('/api/delete_user', authenticateToken, async (req, res, next) => {
+    try {
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing userId' });
+      }
+
+      const deletedUser = await User.findOneAndDelete({userId: userId});
+
+      if (!deletedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
   // Endpoint URL: /api/parser
   // HTTP Method: POST
   app.post('/api/parser', authenticateToken, async (req, res, next) => {
