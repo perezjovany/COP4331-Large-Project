@@ -115,7 +115,7 @@ exports.setApp = function ( app, client )
       await newUser.save();
 
       //Get the email verification url
-      var verificationUrl = environment == 'Development' ? ("http://localhost:" + apiPort + "/api/verifyemail/" + email) : ("http://cop4331-20-fcdfeeaee1d5.herokuapp.com:" + apiPort + "/api/verifyemail/" + email)
+      var verificationUrl = environment == 'Development' ? ("http://localhost:" + apiPort + "/api/verifyemail/" + email) : ("http://cop4331-20-fcdfeeaee1d5.herokuapp.com/api/verifyemail/" + email)
 
       //Send the email verification email.
       const info = await emailTransport.sendMail({
