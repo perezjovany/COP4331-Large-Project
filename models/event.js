@@ -3,6 +3,11 @@ const Schema = mongoose.Schema;
 
 // Create Schema
 const EventSchema = new Schema({
+  userId: {
+    type: Number,
+    required: true,
+    // Description: The unique identifier for the user associated with the event (required)
+  },
   fridgeItemId: {
     type: Number,
     required: true,

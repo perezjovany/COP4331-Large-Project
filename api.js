@@ -735,7 +735,7 @@ exports.setApp = function ( app, client )
       // incoming: fridgeItemId, expirationDate, description
       // outgoing: eventId
 
-      const { fridgeItemId, expirationDate, foodLabel} = req.body;
+      const { userId, fridgeItemId, expirationDate, foodLabel} = req.body;
 
       // Input Validation
       if (!fridgeItemId || !expirationDate) {
@@ -743,6 +743,7 @@ exports.setApp = function ( app, client )
       }
 
       const newEvent = new Event({
+        userId,
         fridgeItemId,
         expirationDate,
         eventLabel: `${foodLabel} expires`
@@ -764,10 +765,10 @@ exports.setApp = function ( app, client )
       // incoming: eventId, expirationDate, description
       // outgoing: error
 
-      const { eventId, expirationDate, description } = req.body;
+      const { eventId, expirationDate, foodLabel } = req.body;
 
       // Input Validation
-      if (!eventId || !expirationDate) {
+      if (!eventId) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
@@ -775,7 +776,7 @@ exports.setApp = function ( app, client )
         { _id: eventId },
         {
           expirationDate: expirationDate,
-          description: description
+          foodLabel: foodLabel
         },
         { new: true } // Returns the updated event
       );
@@ -821,19 +822,19 @@ exports.setApp = function ( app, client )
     try {
       // incoming: userId
       // outgoing: events
-  
+
       const { userId } = req.body;
-  
+
       if (!userId) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-  
-      const events = await Event.find({ fridgeItemId: userId }); // Using fridgeItemId as userId is now used as input
-  
+
+      const events = await Event.find({ userId: userId });
+
       if (!events) {
         return res.status(404).json({ error: 'No events found for the given user' });
       }
-  
+
       res.status(200).json(events);
     } catch (error) {
       handleError(error, res);
