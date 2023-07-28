@@ -11,6 +11,7 @@ const User = require("./models/user.js");
 const List = require("./models/list.js");
 const ListItem = require("./models/listItem.js");
 const FridgeItem = require("./models/fridgeItem.js");
+const Event = require("./models/event.js");
 
 //JWT
 const jwtKey = process.env.JWT_SECRET
@@ -726,4 +727,141 @@ exports.setApp = function ( app, client )
       handleError(error, res);
     }
   });
+
+  // Endpoint URL: /api/create_event
+  // HTTP Method: POST
+  app.post('/api/create_event', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: fridgeItemId, expirationDate, description
+      // outgoing: eventId
+
+      const { fridgeItemId, expirationDate, foodLabel} = req.body;
+
+      // Input Validation
+      if (!fridgeItemId || !expirationDate) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const newEvent = new Event({
+        fridgeItemId,
+        expirationDate,
+        eventLabel: `${foodLabel} expires`
+      });
+
+      const savedEvent = await newEvent.save();
+
+      // Successful response with 200 status and the eventId
+      res.status(200).json({ eventId: savedEvent._id.toString() });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/update_event
+  // HTTP Method: PUT
+  app.put('/api/update_event', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: eventId, expirationDate, description
+      // outgoing: error
+
+      const { eventId, expirationDate, description } = req.body;
+
+      // Input Validation
+      if (!eventId || !expirationDate) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const updatedEvent = await Event.findOneAndUpdate(
+        { _id: eventId },
+        {
+          expirationDate: expirationDate,
+          description: description
+        },
+        { new: true } // Returns the updated event
+      );
+
+      if (!updatedEvent) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/get_event
+  // HTTP Method: GET
+  app.get('/api/get_event', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: eventId
+      // outgoing: event
+  
+      const { eventId } = req.body;
+  
+      if (!eventId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+  
+      const event = await Event.findOne({ _id: eventId }); // Using _id instead of eventId
+  
+      if (!event) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+  
+      res.status(200).json({ event });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/get_all_events
+  // HTTP Method: GET
+  app.get('/api/get_all_events', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userId
+      // outgoing: events
+  
+      const { userId } = req.body;
+  
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+  
+      const events = await Event.find({ fridgeItemId: userId }); // Using fridgeItemId as userId is now used as input
+  
+      if (!events) {
+        return res.status(404).json({ error: 'No events found for the given user' });
+      }
+  
+      res.status(200).json(events);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/delete_event
+  // HTTP Method: DELETE
+  app.delete('/api/delete_event', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: eventId
+      // outgoing: error
+  
+      const { eventId } = req.body;
+  
+      if (!eventId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+  
+      const deletedEvent = await Event.findOneAndDelete({ _id: eventId }); // Using _id instead of eventId
+  
+      if (!deletedEvent) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+  
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });  
 }
