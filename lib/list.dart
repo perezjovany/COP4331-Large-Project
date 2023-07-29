@@ -8,19 +8,33 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Item {
-  final String title;
-  final String? userId;
+  final String? itemId;
+  String title;
   bool checked;
+  final String? listId;
 
-  Item(this.title, this.checked, this.userId);
+  bool? isEditing;
+  TextEditingController? editingController;
+
+  Item(this.itemId, this.title, this.checked, this.listId) {
+    isEditing = false;
+    editingController = TextEditingController(text: title);
+  }
 }
 
 class CheckList {
+  String? listId;
   String title;
   List<Item> items;
-  String? userId; 
+  String? userId;
 
-  CheckList(this.title, this.items, this.userId);
+  bool? isEditing;
+  TextEditingController? editingController;
+
+  CheckList(this.listId, this.title, this.items, this.userId) {
+    isEditing = false;
+    editingController = TextEditingController(text: title);
+  }
 }
 
 class ListPage extends StatefulWidget {
@@ -62,7 +76,7 @@ class State_List extends State<ListPage> {
 
         if (response.statusCode == 200) {
           setState(() {
-            _checkLists.add(CheckList(title, [], res['listId'].toString()));
+            _checkLists.add(CheckList(res['listId'], title, [], res['userId']));
             _newCheckListController.clear();
           });
         } else {
@@ -77,10 +91,6 @@ class State_List extends State<ListPage> {
   Future<void> _addItem(CheckList checkList) async {
     final String title = _newCheckListController.text.trim();
     if (title.isNotEmpty) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
-      var userId = userData['userId'];
-
       var path = await buildPath('api/create_list_item');
       var url = Uri.parse(path);
       var token = await getToken();
@@ -88,18 +98,15 @@ class State_List extends State<ListPage> {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token'
       };
-      var body = jsonEncode({'listId': userId, 'label': title});
+      var body = jsonEncode({'listId': checkList.listId, 'label': title});
 
       try {
         var response = await http.post(url, headers: headers, body: body);
-        print('Status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
         var res = jsonDecode(response.body);
 
         if (response.statusCode == 200) {
           setState(() {
-            checkList.items
-                .add(Item(title, false, res['listItemId'].toString()));
+            checkList.items.add(Item(res['listItemId'], title, false, checkList.listId));
             _newCheckListController.clear();
           });
         } else {
@@ -110,12 +117,35 @@ class State_List extends State<ListPage> {
       }
     }
   }
+  
+  Future<void> _editCheckList(CheckList checkList, String newTitle) async {
+    var path = await buildPath('api/update_list');
+    var url = Uri.parse(path);
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+    var body = jsonEncode({'listId': checkList.listId, 'label': newTitle});
+
+    try {
+      var response = await http.put(url, headers: headers, body: body);
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        setState(() {
+          // Update the title of the checkList
+          checkList.title = newTitle;
+        });
+      } else {
+        _showErrorDialog(res['error']);
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
+  }
 
   Future<void> _deleteCheckList(CheckList checkList) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
-    var userId = userData['userId'];
-
     var path = await buildPath('api/delete_list');
     var url = Uri.parse(path);
     var token = await getToken();
@@ -123,7 +153,7 @@ class State_List extends State<ListPage> {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token'
     };
-    var body = jsonEncode({'listId': userId});
+    var body = jsonEncode({'listId': checkList.listId});
 
     try {
       var response = await http.delete(url, headers: headers, body: body);
@@ -142,10 +172,6 @@ class State_List extends State<ListPage> {
   }
 
   Future<void> _toggleItem(Item item) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
-    var userId = userData['userId'];
-
     var path = await buildPath('api/update_list_item');
     var url = Uri.parse(path);
     var token = await getToken();
@@ -154,7 +180,7 @@ class State_List extends State<ListPage> {
       'Authorization': 'Bearer $token'
     };
     var body = jsonEncode(
-        {'listItemId': userId, 'isChecked': (!item.checked).toString()});
+        {'listItemId': item.itemId, 'isChecked': (!item.checked).toString()});
 
     try {
       var response = await http.put(url, headers: headers, body: body);
@@ -172,11 +198,37 @@ class State_List extends State<ListPage> {
     }
   }
 
-  Future<void> _deleteItem(CheckList checkList, Item item) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
-    var userId = userData['userId'];
+  Future<void> _editItem(Item itemToUpdate, String newTitle) async {
+    final String itemId = itemToUpdate.itemId!;
+    var path = await buildPath('api/update_list_item');
+    var url = Uri.parse(path);
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
+    var body = jsonEncode({
+      'listItemId': itemId,
+      'label': newTitle,
+    });
 
+    try {
+      var response = await http.put(url, headers: headers, body: body);
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        setState(() {
+          itemToUpdate.title = newTitle;
+        });
+      } else {
+        _showErrorDialog(res['error']);
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
+  }
+
+  Future<void> _deleteItem(CheckList checkList, Item item) async {
     var path = await buildPath('api/delete_list_item');
     var url = Uri.parse(path);
     var token = await getToken();
@@ -184,12 +236,10 @@ class State_List extends State<ListPage> {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token'
     };
-    var body = jsonEncode({'listItemId': userId});
+    var body = jsonEncode({'listItemId': item.itemId});
 
     try {
       var response = await http.delete(url, headers: headers, body: body);
-      print('Status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
       var res = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
@@ -210,46 +260,28 @@ class State_List extends State<ListPage> {
     _loadLists();
   }
 
-Future<void> _loadLists() async {
-  print("loading lists");
-  try {
-    print("try block");
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
-    var userId = userData['userId'].toString();
-
-    var path = await buildPath('api/get_all_lists/$userId');
-    print('Path: $path');
-    var url = Uri.parse(path);
-    print('Built URL: $url');
-
-    var token = await getToken();
-    print("got token: $token");
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
-    };
-    print('Headers: $headers');
-
-    var response = await http.get(url, headers: headers);
-    print('Status code: ${response.statusCode}');
-    print('Response body: ${response.body}');
-    var res;
+  Future<void> _loadLists() async {
     try {
-      res = jsonDecode(response.body);
-      print('Decoded response: $res');
-    } catch (e) {
-      print('Error decoding response: $e');
-      return;
-    }
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
+      var userId = userData['userId'].toString();
 
-    if (response.statusCode == 200) {
-      try {
+      var path = await buildPath('api/get_all_lists/$userId');
+      var url = Uri.parse(path);
+
+      var token = await getToken();
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      };
+
+      var response = await http.get(url, headers: headers);
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
         for (var listData in res) {
-          print(
-              'List data: _id: ${listData['_id']}, label: ${listData['label']}, listId: ${listData['listId']}');
           var listItemsPath =
-              await buildPath('api/get_list_items/${listData['listId']}');
+              await buildPath('api/get_list_items/${listData['_id']}');
           var listItemsUrl = Uri.parse(listItemsPath);
 
           var listItemsResponse =
@@ -259,31 +291,27 @@ Future<void> _loadLists() async {
           List<Item> items = [];
           if (listItemsResponse.statusCode == 200 && listItemsRes != null) {
             for (var listItemData in listItemsRes) {
-              var title = listItemData['title'] ?? 'Unknown Title'; // set default value for null title
-              var checked = listItemData['checked'] ?? false; // set default value for null checked
-              var userId = listItemData['userId'] ?? 'Unknown User'; // set default value for null userId
-              print('List item data: title: $title, checked: $checked, userId: $userId');
-              items.add(Item(title, checked, userId));
+              var itemId = listItemData['_id'] ?? 'Unknown Item ID';
+              var title = listItemData['label'] ?? 'Unknown Title';
+              var checked = listItemData['isChecked'] ?? false;
+              var listId = listItemData['listId'] ?? 'Unknown List';
+              items.add(Item(itemId, title, checked, listId));
             }
           }
 
           CheckList checkList =
-              CheckList(listData['label'], items, listData['userId']);
+              CheckList(listData['_id'], listData['label'], items, listData['listId']);
           setState(() {
             _checkLists.add(checkList);
           });
         }
-      } catch (e) {
-        print('Error processing response data: $e');
-        return;
+      } else {
+        _showErrorDialog(res['error']);
       }
-    } else {
-      _showErrorDialog(res['error']);
+    } catch (e) {
+      _showErrorDialog(e.toString());
     }
-  } catch (e) {
-    _showErrorDialog(e.toString());
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -327,15 +355,44 @@ Future<void> _loadLists() async {
   }
 
   Widget _buildCheckList(CheckList checkList) {
+    bool isEditing = checkList.isEditing ?? false; // Initialize with false
+    TextEditingController controller =
+        checkList.editingController ?? TextEditingController();
+
     return Card(
       elevation: 2.0,
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ExpansionTile(
-        title: Text(checkList.title),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline),
-          onPressed: () => _deleteCheckList(checkList),
-        ),
+        title: isEditing
+            ? TextField(
+                controller: controller,
+                onSubmitted: (value) {
+                  _saveCheckListTitle(checkList, value);
+                },
+              )
+            : Text(checkList.title),
+        trailing: isEditing
+            ? IconButton(
+                icon: const Icon(Icons.save),
+                onPressed: () {
+                  _saveCheckListTitle(checkList, controller.text);
+                },
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () {
+                      _startEditCheckList(checkList, controller);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _deleteCheckList(checkList),
+                  ),
+                ],
+              ),
         children: <Widget>[
           _buildItemsList(checkList),
           _buildAddItemField(checkList),
@@ -350,24 +407,86 @@ Future<void> _loadLists() async {
       itemCount: checkList.items.length,
       itemBuilder: (context, index) {
         final item = checkList.items[index];
+        bool isEditing = item.isEditing ?? false; // Initialize with false
+        TextEditingController controller =
+            item.editingController ?? TextEditingController();
+
         return ListTile(
           leading: Checkbox(
             value: item.checked,
             onChanged: (bool? newValue) =>
                 newValue != null ? _toggleItem(item) : null,
           ),
-          title: Text(
-            item.title,
-            style: TextStyle(
-                decoration: item.checked ? TextDecoration.lineThrough : null),
-          ),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => _deleteItem(checkList, item),
-          ),
+          title: isEditing
+              ? TextField(
+                  controller: controller,
+                  onSubmitted: (value) {
+                    _saveItemTitle(item, value);
+                  },
+                )
+              : Text(
+                  item.title,
+                  style: TextStyle(
+                    decoration: item.checked ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+          trailing: isEditing
+              ? IconButton(
+                  icon: const Icon(Icons.save),
+                  onPressed: () {
+                    _saveItemTitle(item, controller.text);
+                  },
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () {
+                        _startEditItem(item, controller);
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _deleteItem(checkList, item),
+                    ),
+                  ],
+                ),
         );
       },
     );
+  }
+
+  void _startEditCheckList(CheckList checkList, TextEditingController controller) {
+    setState(() {
+      checkList.isEditing = true;
+      checkList.editingController = controller;
+    });
+  }
+
+  void _saveCheckListTitle(CheckList checkList, String newTitle) {
+    setState(() {
+      checkList.isEditing = false;
+      checkList.title = newTitle;
+    });
+    _editCheckList(checkList, newTitle); // Save the changes to the server
+    FocusScope.of(context).unfocus();
+  }
+
+  void _startEditItem(Item item, TextEditingController controller) {
+    setState(() {
+      item.isEditing = true;
+      item.editingController = controller;
+    });
+  }
+
+  void _saveItemTitle(Item item, String newTitle) {
+    setState(() {
+      item.isEditing = false;
+      item.title = newTitle;
+    });
+    _editItem(item, newTitle); // Save the changes to the server
+    FocusScope.of(context).unfocus();
   }
 
   Widget _buildAddItemField(CheckList checkList) {

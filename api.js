@@ -336,15 +336,11 @@ exports.setApp = function ( app, client )
       await newList.save();
   
       // Retrieve the generated listId from the database
-      const savedList = await List.findOne({ userId, label });
-  
-      res.status(200).json({ listId: savedList.listId, error: "" });
+      res.status(200).json({ listId: newList._id.toString(), error: "" });
     } catch (error) {
       handleError(error, res);
     }
   });
-  
-  
 
   // Endpoint URL: /api/update_list
   // Update a list
@@ -357,7 +353,7 @@ exports.setApp = function ( app, client )
         return res.status(400).json({ error: 'Missing required fields' });
       }
   
-      const updatedList = await List.findOneAndUpdate({ listId: listId }, { label: label }, { new: true });
+      const updatedList = await List.findOneAndUpdate({ _id: listId }, { label: label }, { new: true });
   
       if (!updatedList) {
         return res.status(404).json({ error: 'List not found' });
@@ -367,34 +363,35 @@ exports.setApp = function ( app, client )
     } catch (error) {
       handleError(error, res);
     }
-  });
-  
+  });  
 
   // Endpoint URL: /api/delete_list
   // Delete a list
   app.delete('/api/delete_list', authenticateToken, async (req, res, next) => {
     try {
       const { listId } = req.body;
-
+  
       if (!listId) {
         return res.status(400).json({ error: 'Missing listId' });
       }
-
-      const deletedList = await List.findOneAndDelete({listId: listId});
-
+  
+      const deletedList = await List.findOneAndDelete({ _id: listId });
+  
       if (!deletedList) {
         return res.status(404).json({ error: 'List not found' });
       }
-
+  
       // Delete all related list items
       await ListItem.deleteMany({ listId });
-
+  
       res.status(200).json({ error: '' });
     } catch (error) {
       handleError(error, res);
     }
   });
 
+  // Endpoint URL: /api/create_list_item
+  // Create a new list item
   app.post('/api/create_list_item', authenticateToken, async (req, res, next) => {
     try {
       const { listId, label } = req.body;
@@ -419,117 +416,109 @@ exports.setApp = function ( app, client )
       await newItem.save();
   
       // Retrieve the generated listItemId from the database
-      const savedItem = await ListItem.findOne({ listId, label });
-  
-      res.status(200).json({ listItemId: savedItem.listItemId, error: "" });
+      res.status(200).json({ listItemId: newItem._id.toString(), error: "" });
     } catch (error) {
       handleError(error, res);
     }
   });
-  
-  
 
   // Endpoint URL: /api/update_list_item
   // Update a list item
   app.put('/api/update_list_item', authenticateToken, async (req, res, next) => {
     try {
       const { listItemId, label, isChecked } = req.body;
-
+  
       // Input Validation
       if (!listItemId) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-
-      const updatedItem = await ListItem.findOneAndUpdate({listItemId: listItemId}, { label, isChecked }, { new: true });
-
+  
+      const updatedItem = await ListItem.findOneAndUpdate({ _id: listItemId }, { label, isChecked }, { new: true });
+  
       if (!updatedItem) {
         return res.status(404).json({ error: 'List item not found' });
       }
-
+  
       res.status(200).json({ error: '' });
     } catch (error) {
       handleError(error, res);
     }
   });
-
+  
   // Endpoint URL: /api/delete_list_item
   // Delete a list item
   app.delete('/api/delete_list_item', authenticateToken, async (req, res, next) => {
     try {
       const { listItemId } = req.body;
-
+  
       if (!listItemId) {
         return res.status(400).json({ error: 'Missing listItemId' });
       }
-
-      const deletedItem = await ListItem.findOneAndDelete({listItemId: listItemId});
-
+  
+      const deletedItem = await ListItem.findOneAndDelete({ _id: listItemId });
+  
       if (!deletedItem) {
         return res.status(404).json({ error: 'List item not found' });
       }
-
+  
       res.status(200).json({ error: '' });
     } catch (error) {
       handleError(error, res);
     }
   });
-
-
-
-
 
   // Endpoint URL: /api/delete_list_item
   // Get a specific list item
   app.get('/api/get_list_item/:itemId', authenticateToken, async (req, res, next) => {
     try {
       const listItemId = req.params.itemId;
-
-      const listItem = await ListItem.findOne({listItemId: listItemId});
-
+  
+      const listItem = await ListItem.findOne({ _id: listItemId });
+  
       if (!listItem) {
         return res.status(404).json({ error: 'List item not found' });
       }
-
+  
       res.status(200).json(listItem);
     } catch (error) {
       handleError(error, res);
     }
-  });
+  });  
 
   // Get all list items for a specific list
   app.get('/api/get_list_items/:listId', authenticateToken, async (req, res, next) => {
     try {
       const listId = req.params.listId;
-
+  
       const listItems = await ListItem.find({ listId });
-
+  
       res.status(200).json(listItems);
     } catch (error) {
       handleError(error, res);
     }
-  });
+  });  
 
   // Get all lists
   app.get('/api/get_all_lists/:userId', authenticateToken, async (req, res, next) => {
     try {
-      const userId = req.query.userId;
-
+      const userId = req.params.userId;
+  
       // Input Validation
       if (!userId) {
         return res.status(400).json({ error: 'Missing userId in the request body' });
       }
-
-      const lists = await List.find({ userId }, { listId: 1, label: 1 });
-
+  
+      const lists = await List.find({ userId });
+  
       if (!lists) {
         return res.status(404).json({ error: 'No lists found for the user' });
       }
-
+  
       res.status(200).json(lists);
     } catch (error) {
       handleError(error, res);
     }
-  });
+  });  
   
   // Endpoint URL: /api/nutrients
   // HTTP Method: POST
