@@ -26,4 +26,4 @@ const UserSchema = new Schema({
   }
 });
 
-module.exports = list = mongoose.model("list_items", UserSchema, "list_items");
+module.exports = list = mongoose.model("user_settings", UserSchema, "user_settings");
