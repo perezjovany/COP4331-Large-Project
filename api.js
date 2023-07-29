@@ -1,18 +1,35 @@
 require('express');
 require('mongodb');
-const axios = require('axios')
-const jwt = require('jsonwebtoken')
+const axios = require('axios');
+const jwt = require('jsonwebtoken');
+
+//Environment ENV
+const environment = process.env.ENVIRONMENT
 
 // Import the required models
 const User = require("./models/user.js");
 const List = require("./models/list.js");
 const ListItem = require("./models/listItem.js");
 const FridgeItem = require("./models/fridgeItem.js");
+const Event = require("./models/event.js");
 
 //JWT
 const jwtKey = process.env.JWT_SECRET
 const app_id = process.env.EDAMAM_ID
 const app_key = process.env.EDAMAM_KEY
+
+//Email
+const nodemailer = require("nodemailer");
+const apiPort = process.env.PORT || 5000;
+const emailTransport = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: 'kitchenpal.cop4331@gmail.com',
+    pass: 'alxkamgubxqorppk'
+  }
+});
 
 exports.setApp = function ( app, client )
 {
@@ -95,11 +112,60 @@ exports.setApp = function ( app, client )
         phone: phone
       });
 
+      //Save to DB
       await newUser.save();
+
+      //Get the email verification url
+      var verificationUrl = environment == 'Development' ? ("http://localhost:" + apiPort + "/api/verifyemail/" + email) : ("http://cop4331-20-fcdfeeaee1d5.herokuapp.com/api/verifyemail/" + email)
+
+      //Send the email verification email.
+      const info = await emailTransport.sendMail({
+        from: '"Kitchen Pal" <kitchenpal.cop4331@gmail.com>', // sender address
+        to: email, // list of receivers
+        subject: "Please Verify your Email ✔", // Subject line
+        html: "<b>Please click <a href='" + verificationUrl + "'>here</a> to verify your email.</b>", // html body
+      });
+
+      console.log("Message sent: %s", info.messageId);
 
       // Successful response with 200 status
       res.status(200).json({ error: '' });
     } catch (error) { 
+      handleError(error, res)
+    }
+  });
+
+  //Verify email address
+  app.get('/api/verifyemail/:email', async (req, res, next) => {
+    try {
+
+
+      const email = req.params.email;
+
+      // Input Validation
+      if (!email) {
+        return res.status(400).json({ error: 'MISSING EMAIL.' });
+      }
+
+      //Get the user from the email.
+      const results = await User.find({ email });
+
+      let response = {
+        error: ''
+      };
+
+      if (results.length > 0) {
+
+        //Update the verified flag
+        await User.findOneAndUpdate({ email: email }, { isVerified: true });
+
+        // Successful response with 200 status
+        res.redirect(302, "https://cop4331-20-fcdfeeaee1d5.herokuapp.com/");
+      } else {
+        // Unauthorized response with 401 status
+        res.status(401).json({ error: 'Invalid Email.'});
+      }
+    } catch (error) {
       handleError(error, res)
     }
   });
@@ -126,8 +192,14 @@ exports.setApp = function ( app, client )
       };
   
       if (results.length > 0) {
-        const { userId, firstName, lastName, email, phone } = results[0];
+        const { userId, firstName, lastName, email, phone, isVerified } = results[0];
         const jwtToken = jwt.sign({ id: userId }, jwtKey);
+
+        //Check for email verification
+        if (!isVerified) {
+          res.status(401).json({ error: 'EMAIL NOT VERIFIED'});
+          return;
+        }
   
         response = {
           userId,
@@ -147,6 +219,28 @@ exports.setApp = function ( app, client )
       }
     } catch (error) {
       handleError(error, res)
+    }
+  });
+
+  // Endpoint URL: /api/delete_user
+  // Delete a user
+  app.delete('/api/delete_user', authenticateToken, async (req, res, next) => {
+    try {
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing userId' });
+      }
+
+      const deletedUser = await User.findOneAndDelete({userId: userId});
+
+      if (!deletedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
     }
   });
 
@@ -242,15 +336,11 @@ exports.setApp = function ( app, client )
       await newList.save();
   
       // Retrieve the generated listId from the database
-      const savedList = await List.findOne({ userId, label });
-  
-      res.status(200).json({ listId: savedList.listId, error: "" });
+      res.status(200).json({ listId: newList._id.toString(), error: "" });
     } catch (error) {
       handleError(error, res);
     }
   });
-  
-  
 
   // Endpoint URL: /api/update_list
   // Update a list
@@ -263,7 +353,7 @@ exports.setApp = function ( app, client )
         return res.status(400).json({ error: 'Missing required fields' });
       }
   
-      const updatedList = await List.findOneAndUpdate({ listId: listId }, { label: label }, { new: true });
+      const updatedList = await List.findOneAndUpdate({ _id: listId }, { label: label }, { new: true });
   
       if (!updatedList) {
         return res.status(404).json({ error: 'List not found' });
@@ -273,34 +363,35 @@ exports.setApp = function ( app, client )
     } catch (error) {
       handleError(error, res);
     }
-  });
-  
+  });  
 
   // Endpoint URL: /api/delete_list
   // Delete a list
   app.delete('/api/delete_list', authenticateToken, async (req, res, next) => {
     try {
       const { listId } = req.body;
-
+  
       if (!listId) {
         return res.status(400).json({ error: 'Missing listId' });
       }
-
-      const deletedList = await List.findOneAndDelete({listId: listId});
-
+  
+      const deletedList = await List.findOneAndDelete({ _id: listId });
+  
       if (!deletedList) {
         return res.status(404).json({ error: 'List not found' });
       }
-
+  
       // Delete all related list items
       await ListItem.deleteMany({ listId });
-
+  
       res.status(200).json({ error: '' });
     } catch (error) {
       handleError(error, res);
     }
   });
 
+  // Endpoint URL: /api/create_list_item
+  // Create a new list item
   app.post('/api/create_list_item', authenticateToken, async (req, res, next) => {
     try {
       const { listId, label } = req.body;
@@ -325,117 +416,109 @@ exports.setApp = function ( app, client )
       await newItem.save();
   
       // Retrieve the generated listItemId from the database
-      const savedItem = await ListItem.findOne({ listId, label });
-  
-      res.status(200).json({ listItemId: savedItem.listItemId, error: "" });
+      res.status(200).json({ listItemId: newItem._id.toString(), error: "" });
     } catch (error) {
       handleError(error, res);
     }
   });
-  
-  
 
   // Endpoint URL: /api/update_list_item
   // Update a list item
   app.put('/api/update_list_item', authenticateToken, async (req, res, next) => {
     try {
       const { listItemId, label, isChecked } = req.body;
-
+  
       // Input Validation
       if (!listItemId) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-
-      const updatedItem = await ListItem.findOneAndUpdate({listItemId: listItemId}, { label, isChecked }, { new: true });
-
+  
+      const updatedItem = await ListItem.findOneAndUpdate({ _id: listItemId }, { label, isChecked }, { new: true });
+  
       if (!updatedItem) {
         return res.status(404).json({ error: 'List item not found' });
       }
-
+  
       res.status(200).json({ error: '' });
     } catch (error) {
       handleError(error, res);
     }
   });
-
+  
   // Endpoint URL: /api/delete_list_item
   // Delete a list item
   app.delete('/api/delete_list_item', authenticateToken, async (req, res, next) => {
     try {
       const { listItemId } = req.body;
-
+  
       if (!listItemId) {
         return res.status(400).json({ error: 'Missing listItemId' });
       }
-
-      const deletedItem = await ListItem.findOneAndDelete({listItemId: listItemId});
-
+  
+      const deletedItem = await ListItem.findOneAndDelete({ _id: listItemId });
+  
       if (!deletedItem) {
         return res.status(404).json({ error: 'List item not found' });
       }
-
+  
       res.status(200).json({ error: '' });
     } catch (error) {
       handleError(error, res);
     }
   });
-
-
-
-
 
   // Endpoint URL: /api/delete_list_item
   // Get a specific list item
   app.get('/api/get_list_item/:itemId', authenticateToken, async (req, res, next) => {
     try {
       const listItemId = req.params.itemId;
-
-      const listItem = await ListItem.findOne({listItemId: listItemId});
-
+  
+      const listItem = await ListItem.findOne({ _id: listItemId });
+  
       if (!listItem) {
         return res.status(404).json({ error: 'List item not found' });
       }
-
+  
       res.status(200).json(listItem);
     } catch (error) {
       handleError(error, res);
     }
-  });
+  });  
 
   // Get all list items for a specific list
   app.get('/api/get_list_items/:listId', authenticateToken, async (req, res, next) => {
     try {
       const listId = req.params.listId;
-
+  
       const listItems = await ListItem.find({ listId });
-
+  
       res.status(200).json(listItems);
     } catch (error) {
       handleError(error, res);
     }
-  });
+  });  
 
   // Get all lists
-  app.get('/api/get_all_lists', authenticateToken, async (req, res, next) => {
+  app.get('/api/get_all_lists/:userId', authenticateToken, async (req, res, next) => {
     try {
-      const { userId } = req.body;
-
+      const userId = req.params.userId;
+  
       // Input Validation
       if (!userId) {
         return res.status(400).json({ error: 'Missing userId in the request body' });
       }
-
-      const lists = await List.find({ userId }, { listId: 1, label: 1 });
-
+  
+      const lists = await List.find({ userId });
+  
       if (!lists) {
         return res.status(404).json({ error: 'No lists found for the user' });
       }
-
+  
       res.status(200).json(lists);
     } catch (error) {
       handleError(error, res);
     }
-  });
+  });  
   
   // Endpoint URL: /api/nutrients
   // HTTP Method: POST
@@ -485,8 +568,6 @@ exports.setApp = function ( app, client )
       handleError(error, res);
     }
   });
-
-
 
   // Endpoint URL: /api/create_fridgeItem
   // HTTP Method: POST
@@ -580,6 +661,34 @@ exports.setApp = function ( app, client )
       handleError(error, res);
     }
   });
+
+  // Endpoint URL: /api/get_all_fridge_items
+  // HTTP Method: GET
+  app.get('/api/get_all_fridge_items', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userId
+      // outgoing: fridgeItemIds
+
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const fridgeItems = await FridgeItem.find({ userId: userId }, 'fridgeItemId');
+
+      if (!fridgeItems) {
+        return res.status(404).json({ error: 'No fridge items found for the given user' });
+      }
+
+      // Extracting fridgeItemId from each fridgeItem
+      const fridgeItemIds = fridgeItems.map(item => item.fridgeItemId);
+
+      res.status(200).json(fridgeItemIds);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
   
   // Endpoint URL: /api/delete_fridge_item
   // HTTP Method: DELETE
@@ -598,6 +707,239 @@ exports.setApp = function ( app, client )
 
       if (!deletedFridgeItem) {
         return res.status(404).json({ error: 'Fridge item not found' });
+      }
+
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+  // Endpoint URL: /api/create_event
+  // HTTP Method: POST
+  app.post('/api/create_event', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: fridgeItemId, expirationDate, description
+      // outgoing: eventId
+
+      const { userId, fridgeItemId, expirationDate, foodLabel} = req.body;
+
+      // Input Validation
+      if (!fridgeItemId || !expirationDate) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const newEvent = new Event({
+        userId,
+        fridgeItemId,
+        expirationDate,
+        eventLabel: `${foodLabel} expires`
+      });
+
+      const savedEvent = await newEvent.save();
+
+      // Successful response with 200 status and the eventId
+      res.status(200).json({ eventId: savedEvent._id.toString() });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/update_event
+  // HTTP Method: PUT
+  app.put('/api/update_event', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: eventId, expirationDate, description
+      // outgoing: error
+
+      const { eventId, expirationDate, foodLabel } = req.body;
+
+      // Input Validation
+      if (!eventId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const updatedEvent = await Event.findOneAndUpdate(
+        { _id: eventId },
+        {
+          expirationDate: expirationDate,
+          foodLabel: foodLabel
+        },
+        { new: true } // Returns the updated event
+      );
+
+      if (!updatedEvent) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/get_event
+  // HTTP Method: GET
+  app.get('/api/get_event', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: eventId
+      // outgoing: event
+  
+      const { eventId } = req.body;
+  
+      if (!eventId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+  
+      const event = await Event.findOne({ _id: eventId }); // Using _id instead of eventId
+  
+      if (!event) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+  
+      res.status(200).json({ event });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/get_all_events
+  // HTTP Method: GET
+  app.get('/api/get_all_events', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userId
+      // outgoing: events
+
+      const { userId } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const events = await Event.find({ userId: userId });
+
+      if (!events) {
+        return res.status(404).json({ error: 'No events found for the given user' });
+      }
+
+      res.status(200).json(events);
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+  
+  // Endpoint URL: /api/delete_event
+  // HTTP Method: DELETE
+  app.delete('/api/delete_event', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: eventId
+      // outgoing: error
+  
+      const { eventId } = req.body;
+  
+      if (!eventId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+  
+      const deletedEvent = await Event.findOneAndDelete({ _id: eventId }); // Using _id instead of eventId
+  
+      if (!deletedEvent) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+  
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });  
+
+  // Endpoint URL: /api/get_user
+  // HTTP Method: GET
+  app.get('/api/get_user', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userId
+      // outgoing: user
+  
+      const { userId } = req.body;
+  
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing required field' });
+      }
+  
+      const user = await User.findOne({ userId: userId }); 
+  
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+  
+      res.status(200).json({ user });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+  // Endpoint URL: /api/get_user_settings
+  // HTTP Method: GET
+  app.get('/api/get_user_settings', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userId
+      // outgoing: user_settings
+  
+      const { userId } = req.body;
+  
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing required field' });
+      }
+  
+      const user_settings = await UserSettings.findOne({ userId: userId }); 
+  
+      if (!user_settings) {
+        return res.status(404).json({ error: 'User Settings not found' });
+      }
+  
+      res.status(200).json({ user_settings });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+
+
+  // Endpoint URL: /api/update_user
+  // HTTP Method: PUT
+  app.put('/api/update_user', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userId, firstName, lastName, phone, daysLeft, isLightMode
+      // outgoing: error
+
+      const { userId, firstName, lastName, phone, daysLeft, isLightMode } = req.body;
+
+      // Input Validation
+      if (!userId || !firstName || !lastName || !phone || !daysLeft || !isLightMode) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const updatedUser = await User.findOneAndUpdate(
+        { userId: userId },
+        {
+          firstName: firstName,
+          lastName: lastName, 
+          phone: phone
+        },
+        { new: true } 
+      );
+
+      const updatedUserSettings = await UserSettings.findOneandUpdate(
+        {userId: userId},
+        {
+          daysLeft: daysLeft,
+          isLightMode: isLightMode
+        },
+        { new: true} 
+      );
+
+      if (!updatedUser || !updatedUserSettings) {
+        return res.status(404).json({ error: 'User or User Settings not found' });
       }
 
       res.status(200).json({ error: '' });
