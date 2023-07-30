@@ -201,7 +201,9 @@ class _MainPageState extends State<MainPage> {
       var response = await http.post(url, headers: headers, body: body);
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
-        return List<String>.from(data).take(5).toList();
+        _suggestions = List<String>.from(data).take(6).toList();
+        _suggestions.remove(value);
+        return _suggestions;
       }
     } catch (e) {
       // Handle errors
@@ -226,91 +228,63 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Size based on screen
-    final double containerWidth = MediaQuery.of(context).size.width > 600
-        ? 600
-        : MediaQuery.of(context).size.width;
-
     return Scaffold(
       appBar: const topBar(title: 'Main Page'),
       body: Padding(
         padding: const EdgeInsets.only(top: 8.0, left: 8.0, right: 8.0),
         child: Align(
           alignment: Alignment.topCenter,
-          child: Container(
-            width: containerWidth,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  spreadRadius: 5,
-                  blurRadius: 7,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+          child: Card(
+            elevation: 8.0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  const Text(
-                    'Search Ingredients', //  Change this???
-                    style: TextStyle(fontSize: 20, color: Colors.green),
+            child: ListTile(
+              leading: IconButton(
+                  icon: const Icon(Icons.qr_code_scanner, color: Colors.green),
+                  onPressed: () async {
+                    await _showBarcodeScanner();
+                    if (_scanResult.isNotEmpty) {
+                      await parse(_scanResult);
+                      _scanResult = "";
+                    }
+                  }),
+              title: TypeAheadField(
+                suggestionsCallback: _getSuggestions,
+                itemBuilder: (context, suggestion) {
+                  return ListTile(
+                    title: Text(suggestion),
+                    onTap: () {
+                      // Handle suggestion selection here
+                      _onSuggestionSelected(suggestion);
+                    },
+                  );
+                },
+                onSuggestionSelected: (suggestion) {
+                  // Handle suggestion selection here
+                  _onSuggestionSelected(suggestion);
+                },
+                textFieldConfiguration: TextFieldConfiguration(
+                  controller: ingController, // Use the TextEditingController
+                  decoration: const InputDecoration(
+                    hintText: 'Search Ingredient',
+                    border: InputBorder.none,
                   ),
-                  const SizedBox(height: 10),
-                  Card(
-                    elevation: 8.0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: ListTile(
-                      leading: IconButton(
-                          icon: const Icon(Icons.qr_code_scanner,
-                              color: Colors.green),
-                          onPressed: () async {
-                            await _showBarcodeScanner();
-                            if (_scanResult.isNotEmpty) {
-                              await parse(_scanResult);
-                              _scanResult = "";
-                            }
-                          }),
-                      title: TypeAheadField(
-                        suggestionsCallback: _getSuggestions,
-                        itemBuilder: (context, suggestion) {
-                          return ListTile(
-                            title: Text(suggestion),
-                            onTap: () {
-                              // Handle suggestion selection here
-                              _onSuggestionSelected(suggestion);
-                            },
-                          );
-                        },
-                        onSuggestionSelected: (suggestion) {
-                          // Handle suggestion selection here
-                          _onSuggestionSelected(suggestion);
-                        },
-                        textFieldConfiguration: TextFieldConfiguration(
-                          controller:
-                              ingController, // Use the TextEditingController
-                          decoration: const InputDecoration(
-                            hintText: 'Search',
-                            border: InputBorder.none,
-                          ),
-                          onChanged: _onSearchChanged,
-                        ),
-                      ),
-                      trailing: IconButton(
-                          icon: const Icon(Icons.search, color: Colors.green),
-                          onPressed: () async {
-                            await parse(ingController.text);
-                          }),
-                    ),
-                  ),
-                ],
+                  onChanged: _onSearchChanged,
+                ),
+                noItemsFoundBuilder: (context) {
+                  return const Text("");
+                },
+                loadingBuilder: (context) {
+                  return const Text("");
+                },
+                debounceDuration: Duration.zero,
               ),
+              trailing: IconButton(
+                  icon: const Icon(Icons.search, color: Colors.green),
+                  onPressed: () async {
+                    await parse(ingController.text);
+                  }),
             ),
           ),
         ),
