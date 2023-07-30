@@ -40,7 +40,7 @@ exports.setApp = function ( app, client )
   // Middleware to authenticate the JWT token
   function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const token = authHeader;
     if (token == null) {
       return res.status(401).json({ error: 'MISSING AUTHORIZATION HEADER' });
     }
@@ -239,6 +239,46 @@ exports.setApp = function ( app, client )
       } else {  
         // Unauthorized response with 401 status
         res.status(401).json({ error: 'INCORRECT USERNAME/PASSWORD'});
+      }
+    } catch (error) {
+      handleError(error, res)
+    }
+  });
+
+  app.post('/api/change_password', authenticateToken, async (req, res, next) => {
+    try {
+
+      //Get http params
+      const { password } = req.body;
+
+      //Get the actual user object from the token
+      const user = req.user;
+
+      // Input Validation
+      if (!password) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      //Get the user from the email.
+      const results = await User.find({ userId: user.id });
+
+      let response = {
+        error: ''
+      };
+
+      if (results.length > 0) {
+
+        //Hash the incoming password
+        var hashedPassword = crypto.pbkdf2Sync(password, password_salt, 1000, 64, `sha512`).toString(`hex`);
+
+        //Update the verified flag
+        await User.findOneAndUpdate({ userId: user.id }, { password: hashedPassword });
+
+        // Successful response with 200 status
+        res.status(200).json({ error: '' });
+      } else {
+        // Unauthorized response with 401 status
+        res.status(401).json({ error: 'Not authorized.'});
       }
     } catch (error) {
       handleError(error, res)
