@@ -26,12 +26,12 @@ const password_salt = process.env.PASSWORD_SALT;
 const nodemailer = require("nodemailer");
 const apiPort = process.env.PORT || 5000;
 const emailTransport = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
+  host: process.env.EMAIL_SMTP,
+  port: process.env.EMAIL_PORT,
   secure: true,
   auth: {
-    user: 'kitchenpal.cop4331@gmail.com',
-    pass: 'alxkamgubxqorppk'
+    user: process.env.EMAIL_LOGIN,
+    pass: process.env.EMAIL_PASS
   }
 });
 
