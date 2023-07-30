@@ -348,6 +348,9 @@ class _MainPageState extends State<MainPage> {
                 return FridgeItemWidget(
                   foodLabel: fridgeItem['foodLabel'],
                   expirationDate: DateTime.parse(fridgeItem['expirationDate']),
+                  totalCalories: fridgeItem['totalCalories'],
+                  quantity: fridgeItem['ingredients'][0]['quantity'],
+                  measure: fridgeItem['measure'],
                   onTap: () {
                     // TODO: Navigate to the nutrients page when tapped
                     print("Tapped!");
@@ -466,9 +469,21 @@ class _MainPageState extends State<MainPage> {
   }
 }
 
+String formatQuantity(double quantity, String measure) {
+  String formattedQuantity =
+      quantity.toStringAsFixed(1); // Format quantity to 1 decimal place
+  String pluralizedMeasure = quantity == 1
+      ? measure
+      : '${measure}s'; // Append 's' to measure if quantity is not 1
+  return '$formattedQuantity $pluralizedMeasure';
+}
+
 class FridgeItemWidget extends StatelessWidget {
   final String foodLabel;
   final DateTime expirationDate;
+  final double totalCalories;
+  final double quantity;
+  final String measure;
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -477,6 +492,9 @@ class FridgeItemWidget extends StatelessWidget {
     super.key,
     required this.foodLabel,
     required this.expirationDate,
+    required this.totalCalories,
+    required this.quantity,
+    required this.measure,
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
@@ -487,7 +505,10 @@ class FridgeItemWidget extends StatelessWidget {
     return ListTile(
       title: Text(foodLabel),
       subtitle: Text(
-          'Expiration Date: ${DateFormat('yyyy-MM-dd').format(expirationDate)}'),
+        'Expiration Date: ${DateFormat('MM/dd/yy').format(expirationDate)}\n'
+        'Quantity: ${formatQuantity(quantity, measure)}\n'
+        'Total Calories: $totalCalories',
+      ),
       onTap: onTap,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
