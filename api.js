@@ -2,6 +2,7 @@ require('express');
 require('mongodb');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 //Environment ENV
 const environment = process.env.ENVIRONMENT
@@ -17,6 +18,9 @@ const Event = require("./models/event.js");
 const jwtKey = process.env.JWT_SECRET
 const app_id = process.env.EDAMAM_ID
 const app_key = process.env.EDAMAM_KEY
+
+//Hashing
+const password_salt = process.env.PASSWORD_SALT;
 
 //Email
 const nodemailer = require("nodemailer");
@@ -103,11 +107,14 @@ exports.setApp = function ( app, client )
         return res.status(409).json({ error: 'User with this login or email already exists' });
       }
 
+      //Hash the password
+      var hashedPassword = crypto.pbkdf2Sync(password, password_salt, 1000, 64, `sha512`).toString(`hex`);
+
       const newUser = new User({
         firstName: firstName,
         lastName: lastName,
         login: login,
-        password: password,
+        password: hashedPassword,
         email: email,
         phone: phone
       });
@@ -184,35 +191,51 @@ exports.setApp = function ( app, client )
       if (!login || !password) {
         return res.status(400).json({ error: 'MISSING USERNAME OR PASSWORD' });
       }
-  
-      const results = await User.find({ login, password });
+
+      //Get result from DB
+      const results = await User.find({ login });
   
       let response = {
         error: ''
       };
-  
-      if (results.length > 0) {
-        const { userId, firstName, lastName, email, phone, isVerified } = results[0];
-        const jwtToken = jwt.sign({ id: userId }, jwtKey);
 
-        //Check for email verification
-        if (!isVerified) {
-          res.status(401).json({ error: 'EMAIL NOT VERIFIED'});
-          return;
+      //Check if it even exists in the DB.
+      if (results.length > 0) {
+
+        //Parse the DB results
+        const { userId, firstName, lastName, email, phone, isVerified } = results[0];
+
+        //Hash the incoming password
+        var hashedPassword = crypto.pbkdf2Sync(password, password_salt, 1000, 64, `sha512`).toString(`hex`);
+
+        //Check if the hash is equal. Also === and not == for type comparison as well.
+        if (hashedPassword === results[0].password) {
+
+
+          const jwtToken = jwt.sign({id: userId}, jwtKey);
+
+          //Check for email verification
+          if (!isVerified) {
+            res.status(401).json({error: 'EMAIL NOT VERIFIED'});
+            return;
+          }
+
+          response = {
+            userId,
+            firstName,
+            lastName,
+            email,
+            phone,
+            token: jwtToken,
+            error: ''
+          };
+
+          // Successful response with 200 status
+          res.status(200).json(response);
+        } else {
+          // Unauthorized response with 401 status
+          res.status(401).json({ error: 'INCORRECT USERNAME/PASSWORD'});
         }
-  
-        response = {
-          userId,
-          firstName,
-          lastName,
-          email,
-          phone,
-          token: jwtToken,
-          error: ''
-        };
-  
-        // Successful response with 200 status
-        res.status(200).json(response);
       } else {  
         // Unauthorized response with 401 status
         res.status(401).json({ error: 'INCORRECT USERNAME/PASSWORD'});
