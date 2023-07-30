@@ -56,3 +56,16 @@ List<String> allfood = [
   'grapes',
   'apple juice'
 ];
+
+class FridgeApp extends StatelessWidget {
+  const FridgeApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: FridgePage(),
+    );
+  }
+}
+
+void main() => runApp(const FridgeApp());
