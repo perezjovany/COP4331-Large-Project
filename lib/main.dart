@@ -16,7 +16,7 @@ import 'calendar.dart';
 import 'account.dart';
 import 'list.dart';
 import 'top_bar.dart';
-
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 //======= Entry Point of the App =======
 
@@ -66,11 +66,13 @@ class _MainPageState extends State<MainPage> {
   // TextEditingController nutritionTypeController = TextEditingController(); //TODO: Implement cooking vs logging
   String message = '';
   var _scanResult = ''; // Assuming this holds the "upc" value.
+  List<String> _suggestions = [];
 
   // Function to handle getting the token
-  Future<String?> getToken() async {
+  Future<String> getToken() async {
     const storage = FlutterSecureStorage();
-    return await storage.read(key: 'auth_token');
+    String? token = await storage.read(key: 'auth_token');
+    return token ?? '';
   }
 
   Future<void> parse(String scanResult) async {
@@ -163,8 +165,63 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  void _onSearchChanged(String searchText) {
-    //  Add search functionality
+  void _onSearchChanged(String value) async {
+    if (value.isEmpty) {
+      setState(() {
+        _suggestions.clear();
+      });
+      return;
+    }
+
+    var suggestions = await _fetchSuggestions(value);
+    setState(() {
+      _suggestions = suggestions;
+    });
+  }
+
+  Future<List<String>> _getSuggestions(String query) async {
+    if (query.isEmpty) {
+      return [];
+    }
+
+    return await _fetchSuggestions(query);
+  }
+
+  Future<List<String>> _fetchSuggestions(String value) async {
+    try {
+      var path = await buildPath('api/manual_search');
+      var url = Uri.parse(path);
+      var token = await getToken();
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      };
+      var body = jsonEncode({'q': value});
+
+      var response = await http.post(url, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        return List<String>.from(data).take(5).toList();
+      }
+    } catch (e) {
+      // Handle errors
+    }
+
+    return [];
+  }
+
+  void _onSuggestionSelected(String suggestion) {
+    // Handle suggestion selection here
+    print("Selected suggestion: $suggestion");
+
+    // Update the search text with the selected suggestion
+    setState(() {
+      ingController.text = suggestion;
+      // Move the cursor to the end of the line
+      ingController.selection = TextSelection.fromPosition(
+        TextPosition(offset: ingController.text.length),
+      );
+    });
   }
 
   @override
@@ -217,14 +274,36 @@ class _MainPageState extends State<MainPage> {
                             _scanResult = "";
                           }
                         }),
-                    title: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Search',
-                        border: InputBorder.none,
+                    title: TypeAheadField(
+                      suggestionsCallback: _getSuggestions,
+                      itemBuilder: (context, suggestion) {
+                        return ListTile(
+                          title: Text(suggestion),
+                          onTap: () {
+                            // Handle suggestion selection here
+                            _onSuggestionSelected(suggestion);
+                          },
+                        );
+                      },
+                      onSuggestionSelected: (suggestion) {
+                        // Handle suggestion selection here
+                        _onSuggestionSelected(suggestion);
+                      },
+                      textFieldConfiguration: TextFieldConfiguration(
+                        controller:
+                            ingController, // Use the TextEditingController
+                        decoration: const InputDecoration(
+                          hintText: 'Search',
+                          border: InputBorder.none,
+                        ),
+                        onChanged: _onSearchChanged,
                       ),
-                      onChanged: _onSearchChanged,
                     ),
-                    trailing: const Icon(Icons.search, color: Colors.green),
+                    trailing: IconButton(
+                        icon: const Icon(Icons.search, color: Colors.green),
+                        onPressed: () async {
+                          //TODO: Implement ing parse
+                        }),
                   ),
                 ),
               ],
