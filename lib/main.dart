@@ -280,6 +280,99 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  Future<void> _showBarcodeScanner() async {
+    if (isScanSupported()) {
+      // Barcode scanning is supported, show the bottom sheet as usual
+      Completer<void> completer = Completer<void>();
+      showModalBottomSheet(
+        isScrollControlled: true,
+        context: context,
+        builder: (builder) {
+          return StatefulBuilder(builder: (BuildContext context, setState) {
+            return SizedBox(
+              height: MediaQuery.of(context).size.height / 2,
+              child: Scaffold(
+                appBar: _buildBarcodeScannerAppBar(),
+                body: _buildBarcodeScannerBody(),
+              ),
+            );
+          });
+        },
+      ).whenComplete(() => completer.complete());
+      await completer.future;
+    } else {
+      // Barcode scanning is not supported, show a popup
+      _showUnsupportedFeaturePopup();
+    }
+  }
+
+  // Function to show a popup for unsupported feature
+  void _showUnsupportedFeaturePopup() {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Feature Not Supported'),
+          content:
+              const Text('Barcode scanning is not supported on your device.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  AppBar _buildBarcodeScannerAppBar() {
+    return AppBar(
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(4.0),
+        child: Container(color: Colors.purpleAccent, height: 4.0),
+      ),
+      title: const Text('Scan Your Barcode'),
+      elevation: 0.0,
+      backgroundColor: const Color(0xFF333333),
+      leading: GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: const Center(
+            child: Icon(
+          Icons.cancel,
+          color: Colors.white,
+        )),
+      ),
+      actions: [
+        Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.only(right: 16.0),
+            child: GestureDetector(
+                onTap: () => controller.toggleTorchMode(),
+                child: const Icon(Icons.flashlight_on))),
+      ],
+    );
+  }
+
+  Widget _buildBarcodeScannerBody() {
+    return SizedBox(
+      height: 400,
+      child: ScanView(
+        controller: controller,
+        scanAreaScale: .7,
+        scanLineColor: Colors.purpleAccent,
+        onCapture: (data) {
+          setState(() {
+            _scanResult = data;
+            Navigator.of(context).pop();
+          });
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -371,99 +464,6 @@ class _MainPageState extends State<MainPage> {
       ),
       bottomNavigationBar: const bottomBar(
         selectedIndex: 0, //  Main Index
-      ),
-    );
-  }
-
-  Future<void> _showBarcodeScanner() async {
-    if (isScanSupported()) {
-      // Barcode scanning is supported, show the bottom sheet as usual
-      Completer<void> completer = Completer<void>();
-      showModalBottomSheet(
-        isScrollControlled: true,
-        context: context,
-        builder: (builder) {
-          return StatefulBuilder(builder: (BuildContext context, setState) {
-            return SizedBox(
-              height: MediaQuery.of(context).size.height / 2,
-              child: Scaffold(
-                appBar: _buildBarcodeScannerAppBar(),
-                body: _buildBarcodeScannerBody(),
-              ),
-            );
-          });
-        },
-      ).whenComplete(() => completer.complete());
-      await completer.future;
-    } else {
-      // Barcode scanning is not supported, show a popup
-      _showUnsupportedFeaturePopup();
-    }
-  }
-
-  // Function to show a popup for unsupported feature
-  void _showUnsupportedFeaturePopup() {
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Feature Not Supported'),
-          content:
-              const Text('Barcode scanning is not supported on your device.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  AppBar _buildBarcodeScannerAppBar() {
-    return AppBar(
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(4.0),
-        child: Container(color: Colors.purpleAccent, height: 4.0),
-      ),
-      title: const Text('Scan Your Barcode'),
-      elevation: 0.0,
-      backgroundColor: const Color(0xFF333333),
-      leading: GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
-        child: const Center(
-            child: Icon(
-          Icons.cancel,
-          color: Colors.white,
-        )),
-      ),
-      actions: [
-        Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.only(right: 16.0),
-            child: GestureDetector(
-                onTap: () => controller.toggleTorchMode(),
-                child: const Icon(Icons.flashlight_on))),
-      ],
-    );
-  }
-
-  Widget _buildBarcodeScannerBody() {
-    return SizedBox(
-      height: 400,
-      child: ScanView(
-        controller: controller,
-        scanAreaScale: .7,
-        scanLineColor: Colors.purpleAccent,
-        onCapture: (data) {
-          setState(() {
-            _scanResult = data;
-            Navigator.of(context).pop();
-          });
-        },
       ),
     );
   }
