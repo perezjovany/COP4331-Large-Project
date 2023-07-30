@@ -854,4 +854,99 @@ exports.setApp = function ( app, client )
       handleError(error, res);
     }
   });  
+
+  // Endpoint URL: /api/get_user
+  // HTTP Method: GET
+  app.get('/api/get_user', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userId
+      // outgoing: user
+  
+      const { userId } = req.body;
+  
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing required field' });
+      }
+  
+      const user = await User.findOne({ userId: userId }); 
+  
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+  
+      res.status(200).json({ user });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+  // Endpoint URL: /api/get_user_settings
+  // HTTP Method: GET
+  app.get('/api/get_user_settings', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userId
+      // outgoing: user_settings
+  
+      const { userId } = req.body;
+  
+      if (!userId) {
+        return res.status(400).json({ error: 'Missing required field' });
+      }
+  
+      const user_settings = await UserSettings.findOne({ userId: userId }); 
+  
+      if (!user_settings) {
+        return res.status(404).json({ error: 'User Settings not found' });
+      }
+  
+      res.status(200).json({ user_settings });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
+
+
+
+  // Endpoint URL: /api/update_user
+  // HTTP Method: PUT
+  app.put('/api/update_user', authenticateToken, async (req, res, next) => {
+    try {
+      // incoming: userId, firstName, lastName, phone, daysLeft, isLightMode
+      // outgoing: error
+
+      const { userId, firstName, lastName, phone, daysLeft, isLightMode } = req.body;
+
+      // Input Validation
+      if (!userId || !firstName || !lastName || !phone || !daysLeft || !isLightMode) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const updatedUser = await User.findOneAndUpdate(
+        { userId: userId },
+        {
+          firstName: firstName,
+          lastName: lastName, 
+          phone: phone
+        },
+        { new: true } 
+      );
+
+      const updatedUserSettings = await UserSettings.findOneandUpdate(
+        {userId: userId},
+        {
+          daysLeft: daysLeft,
+          isLightMode: isLightMode
+        },
+        { new: true} 
+      );
+
+      if (!updatedUser || !updatedUserSettings) {
+        return res.status(404).json({ error: 'User or User Settings not found' });
+      }
+
+      res.status(200).json({ error: '' });
+    } catch (error) {
+      handleError(error, res);
+    }
+  });
 }
