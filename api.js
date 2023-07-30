@@ -177,6 +177,8 @@ exports.setApp = function ( app, client )
     }
   });
 
+
+
   
   // Endpoint URL: /api/login
   // HTTP Method: POST
@@ -279,6 +281,58 @@ exports.setApp = function ( app, client )
       } else {
         // Unauthorized response with 401 status
         res.status(401).json({ error: 'Not authorized.'});
+      }
+    } catch (error) {
+      handleError(error, res)
+    }
+  });
+
+  //Verify email address
+  app.post('/api/reset_password/', async (req, res, next) => {
+    try {
+
+      //Parse params
+      const { email } = req.body;
+
+      // Input Validation
+      if (!email) {
+        return res.status(400).json({ error: 'MISSING EMAIL.' });
+      }
+
+      //Get the user from the email.
+      const results = await User.find({ email: email });
+
+      let response = {
+        error: ''
+      };
+
+      if (results.length > 0) {
+
+        //Create a random password
+        let randomPassword = (Math.random() + 1).toString(36).substring(5);
+
+        //Hash the randomly generated password
+        var hashedPassword = crypto.pbkdf2Sync(randomPassword, password_salt, 1000, 64, `sha512`).toString(`hex`);
+
+        //Send the email verification email.
+        const info = await emailTransport.sendMail({
+          from: '"Kitchen Pal" <kitchenpal.cop4331@gmail.com>', // sender address
+          to: email, // list of receivers
+          subject: "Your Password Has Been Reset ✔", // Subject line
+          html: "<b>Your new password is: " + randomPassword + "</b>", // html body
+        });
+
+        console.log("Message sent: %s", info.messageId);
+
+
+        //Update the verified flag
+        await User.findOneAndUpdate({ email: email }, { password: hashedPassword });
+
+        //Successful response with 200 status
+        res.status(200).json({ error: '' });
+      } else {
+        // Unauthorized response with 401 status
+        res.status(401).json({ error: 'Invalid Email.'});
       }
     } catch (error) {
       handleError(error, res)
