@@ -302,7 +302,7 @@ class _MainPageState extends State<MainPage> {
                     trailing: IconButton(
                         icon: const Icon(Icons.search, color: Colors.green),
                         onPressed: () async {
-                          //TODO: Implement ing parse
+                          await parse(ingController.text);
                         }),
                   ),
                 ),
