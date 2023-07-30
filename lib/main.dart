@@ -3,6 +3,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
 import 'signup.dart';
 import 'package:scan/scan.dart';
@@ -67,6 +69,7 @@ class _MainPageState extends State<MainPage> {
   String message = '';
   var _scanResult = ''; // Assuming this holds the "upc" value.
   List<String> _suggestions = [];
+  List<Map<String, dynamic>> _fridgeItems = [];
 
   // Function to handle getting the token
   Future<String> getToken() async {
@@ -227,14 +230,64 @@ class _MainPageState extends State<MainPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _fetchFridgeItems();
+  }
+
+  Future<void> _fetchFridgeItems() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
+    var userId = userData['userId'];
+
+    try {
+      var path = await buildPath('api/get_all_fridge_items/$userId');
+      var url = Uri.parse(path);
+      var token = await getToken();
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      var response = await http.get(url, headers: headers);
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        var fridgeItemIds = List<int>.from(data);
+
+        // Fetch individual fridge items using fridgeItemIds
+        List<Map<String, dynamic>> fridgeItems = [];
+        for (var fridgeItemId in fridgeItemIds) {
+          path = await buildPath('api/get_fridge_item/$fridgeItemId');
+          url = Uri.parse(path);
+          var fridgeItemResponse = await http.get(url, headers: headers);
+          if (fridgeItemResponse.statusCode == 200) {
+            var fridgeItemData =
+                jsonDecode(fridgeItemResponse.body)['fridgeItem'];
+            fridgeItems.add(fridgeItemData);
+          } else {
+            _showErrorDialog('Failed to fetch fridge item details.');
+          }
+        }
+
+        setState(() {
+          _fridgeItems = fridgeItems;
+        });
+      } else {
+        _showErrorDialog('Failed to fetch fridge item IDs.');
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const topBar(title: 'Main Page'),
-      body: Padding(
-        padding: const EdgeInsets.only(top: 8.0, left: 8.0, right: 8.0),
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Card(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
             elevation: 8.0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -287,7 +340,31 @@ class _MainPageState extends State<MainPage> {
                   }),
             ),
           ),
-        ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _fridgeItems.length,
+              itemBuilder: (context, index) {
+                var fridgeItem = _fridgeItems[index];
+                return FridgeItemWidget(
+                  foodLabel: fridgeItem['foodLabel'],
+                  expirationDate: DateTime.parse(fridgeItem['expirationDate']),
+                  onTap: () {
+                    // TODO: Navigate to the nutrients page when tapped
+                    print("Tapped!");
+                  },
+                  onEdit: () {
+                    // TODO: Implement edit functionality
+                    print("Edit Button!");
+                  },
+                  onDelete: () {
+                    // TODO: Implement delete functionality
+                    print("Delete Button!");
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: const bottomBar(
         selectedIndex: 0, //  Main Index
@@ -384,6 +461,46 @@ class _MainPageState extends State<MainPage> {
             Navigator.of(context).pop();
           });
         },
+      ),
+    );
+  }
+}
+
+class FridgeItemWidget extends StatelessWidget {
+  final String foodLabel;
+  final DateTime expirationDate;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const FridgeItemWidget({
+    super.key,
+    required this.foodLabel,
+    required this.expirationDate,
+    required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(foodLabel),
+      subtitle: Text(
+          'Expiration Date: ${DateFormat('yyyy-MM-dd').format(expirationDate)}'),
+      onTap: onTap,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: onEdit,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: onDelete,
+          ),
+        ],
       ),
     );
   }

@@ -35,6 +35,7 @@ dependencies:
   flutter_secure_storage: ^8.0.0
   syncfusion_flutter_calendar: ^19.4.56
   flutter_typeahead: any
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:

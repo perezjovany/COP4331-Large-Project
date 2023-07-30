@@ -651,12 +651,12 @@ exports.setApp = function ( app, client )
   
   // Endpoint URL: /api/get_fridge_item
   // HTTP Method: GET
-  app.get('/api/get_fridge_item', authenticateToken, async (req, res, next) => {
+  app.get('/api/get_fridge_item/:fridgeItemId', authenticateToken, async (req, res, next) => {
     try {
       // incoming: fridgeItemId
       // outgoing: fridgeItem
   
-      const { fridgeItemId } = req.body;
+      const fridgeItemId = req.params.fridgeItemId;
   
       if (!fridgeItemId) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -676,12 +676,12 @@ exports.setApp = function ( app, client )
 
   // Endpoint URL: /api/get_all_fridge_items
   // HTTP Method: GET
-  app.get('/api/get_all_fridge_items', authenticateToken, async (req, res, next) => {
+  app.get('/api/get_all_fridge_items/:userId', authenticateToken, async (req, res, next) => {
     try {
       // incoming: userId
       // outgoing: fridgeItemIds
 
-      const { userId } = req.body;
+      const userId = req.params.userId;
 
       if (!userId) {
         return res.status(400).json({ error: 'Missing required fields' });
