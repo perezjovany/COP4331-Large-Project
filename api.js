@@ -2,6 +2,7 @@ require('express');
 require('mongodb');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 //Environment ENV
 const environment = process.env.ENVIRONMENT
@@ -18,16 +19,19 @@ const jwtKey = process.env.JWT_SECRET
 const app_id = process.env.EDAMAM_ID
 const app_key = process.env.EDAMAM_KEY
 
+//Hashing
+const password_salt = process.env.PASSWORD_SALT;
+
 //Email
 const nodemailer = require("nodemailer");
 const apiPort = process.env.PORT || 5000;
 const emailTransport = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
+  host: process.env.EMAIL_SMTP,
+  port: process.env.EMAIL_PORT,
   secure: true,
   auth: {
-    user: 'kitchenpal.cop4331@gmail.com',
-    pass: 'alxkamgubxqorppk'
+    user: process.env.EMAIL_LOGIN,
+    pass: process.env.EMAIL_PASS
   }
 });
 
@@ -36,7 +40,7 @@ exports.setApp = function ( app, client )
   // Middleware to authenticate the JWT token
   function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const token = authHeader;
     if (token == null) {
       return res.status(401).json({ error: 'MISSING AUTHORIZATION HEADER' });
     }
@@ -103,11 +107,14 @@ exports.setApp = function ( app, client )
         return res.status(409).json({ error: 'User with this login or email already exists' });
       }
 
+      //Hash the password
+      var hashedPassword = crypto.pbkdf2Sync(password, password_salt, 1000, 64, `sha512`).toString(`hex`);
+
       const newUser = new User({
         firstName: firstName,
         lastName: lastName,
         login: login,
-        password: password,
+        password: hashedPassword,
         email: email,
         phone: phone
       });
@@ -170,6 +177,8 @@ exports.setApp = function ( app, client )
     }
   });
 
+
+
   
   // Endpoint URL: /api/login
   // HTTP Method: POST
@@ -184,38 +193,146 @@ exports.setApp = function ( app, client )
       if (!login || !password) {
         return res.status(400).json({ error: 'MISSING USERNAME OR PASSWORD' });
       }
-  
-      const results = await User.find({ login, password });
+
+      //Get result from DB
+      const results = await User.find({ login });
   
       let response = {
         error: ''
       };
-  
-      if (results.length > 0) {
-        const { userId, firstName, lastName, email, phone, isVerified } = results[0];
-        const jwtToken = jwt.sign({ id: userId }, jwtKey);
 
-        //Check for email verification
-        if (!isVerified) {
-          res.status(401).json({ error: 'EMAIL NOT VERIFIED'});
-          return;
+      //Check if it even exists in the DB.
+      if (results.length > 0) {
+
+        //Parse the DB results
+        const { userId, firstName, lastName, email, phone, isVerified } = results[0];
+
+        //Hash the incoming password
+        var hashedPassword = crypto.pbkdf2Sync(password, password_salt, 1000, 64, `sha512`).toString(`hex`);
+
+        //Check if the hash is equal. Also === and not == for type comparison as well.
+        if (hashedPassword === results[0].password) {
+
+
+          const jwtToken = jwt.sign({id: userId}, jwtKey);
+
+          //Check for email verification
+          if (!isVerified) {
+            res.status(401).json({error: 'EMAIL NOT VERIFIED'});
+            return;
+          }
+
+          response = {
+            userId,
+            firstName,
+            lastName,
+            email,
+            phone,
+            token: jwtToken,
+            error: ''
+          };
+
+          // Successful response with 200 status
+          res.status(200).json(response);
+        } else {
+          // Unauthorized response with 401 status
+          res.status(401).json({ error: 'INCORRECT USERNAME/PASSWORD'});
         }
-  
-        response = {
-          userId,
-          firstName,
-          lastName,
-          email,
-          phone,
-          token: jwtToken,
-          error: ''
-        };
-  
-        // Successful response with 200 status
-        res.status(200).json(response);
       } else {  
         // Unauthorized response with 401 status
         res.status(401).json({ error: 'INCORRECT USERNAME/PASSWORD'});
+      }
+    } catch (error) {
+      handleError(error, res)
+    }
+  });
+
+  app.post('/api/change_password', authenticateToken, async (req, res, next) => {
+    try {
+
+      //Get http params
+      const { password } = req.body;
+
+      //Get the actual user object from the token
+      const user = req.user;
+
+      // Input Validation
+      if (!password) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      //Get the user from the email.
+      const results = await User.find({ userId: user.id });
+
+      let response = {
+        error: ''
+      };
+
+      if (results.length > 0) {
+
+        //Hash the incoming password
+        var hashedPassword = crypto.pbkdf2Sync(password, password_salt, 1000, 64, `sha512`).toString(`hex`);
+
+        //Update the verified flag
+        await User.findOneAndUpdate({ userId: user.id }, { password: hashedPassword });
+
+        // Successful response with 200 status
+        res.status(200).json({ error: '' });
+      } else {
+        // Unauthorized response with 401 status
+        res.status(401).json({ error: 'Not authorized.'});
+      }
+    } catch (error) {
+      handleError(error, res)
+    }
+  });
+
+  //Verify email address
+  app.post('/api/reset_password/', async (req, res, next) => {
+    try {
+
+      //Parse params
+      const { email } = req.body;
+
+      // Input Validation
+      if (!email) {
+        return res.status(400).json({ error: 'MISSING EMAIL.' });
+      }
+
+      //Get the user from the email.
+      const results = await User.find({ email: email });
+
+      let response = {
+        error: ''
+      };
+
+      if (results.length > 0) {
+
+        //Create a random password
+        let randomPassword = (Math.random() + 1).toString(36).substring(5);
+
+        //Hash the randomly generated password
+        var hashedPassword = crypto.pbkdf2Sync(randomPassword, password_salt, 1000, 64, `sha512`).toString(`hex`);
+
+        //Send the email verification email.
+        const info = await emailTransport.sendMail({
+          from: '"Kitchen Pal" <kitchenpal.cop4331@gmail.com>', // sender address
+          to: email, // list of receivers
+          subject: "Your Password Has Been Reset ✔", // Subject line
+          html: "<b>Your new password is: " + randomPassword + "</b>", // html body
+        });
+
+        console.log("Message sent: %s", info.messageId);
+
+
+        //Update the verified flag
+        await User.findOneAndUpdate({ email: email }, { password: hashedPassword });
+
+        //Successful response with 200 status
+        res.status(200).json({ error: '' });
+      } else {
+        // Unauthorized response with 401 status
+        res.status(401).json({ error: 'Invalid Email.'});
       }
     } catch (error) {
       handleError(error, res)
