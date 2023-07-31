@@ -286,7 +286,7 @@ class _MainPageState extends State<MainPage> {
             var expirationDate =
                 DateTime.parse(fridgeItemData['expirationDate']);
             var measure = fridgeItemData['measure'];
-            double totalCalories = fridgeItemData['totalCalories'];
+            var totalCalories = fridgeItemData['totalCalories'].toDouble();
 
             fridgeItems.add(FridgeItem(itemId, foodLabel, ingredients,
                 expirationDate, measure, totalCalories));
@@ -501,8 +501,8 @@ class _MainPageState extends State<MainPage> {
                   fridgeItemId: fridgeItem.fridgeItemId,
                   foodLabel: fridgeItem.foodLabel,
                   expirationDate: fridgeItem.expirationDate,
-                  totalCalories: fridgeItem.totalCalories,
-                  quantity: fridgeItem.ingredients[0]['quantity'],
+                  totalCalories: fridgeItem.totalCalories.toDouble(),
+                  quantity: fridgeItem.ingredients[0]['quantity'].toDouble(),
                   measure: fridgeItem.measure,
                   onTap: () {
                     // TODO: Navigate to the nutrients page when tapped
