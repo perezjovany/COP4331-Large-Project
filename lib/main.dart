@@ -81,21 +81,12 @@ class _MainPageState extends State<MainPage> {
   Future<void> parse(String scanResult) async {
     var path = await buildPath('api/parser');
     var url = Uri.parse(path);
-    var headers = {'Content-Type': 'application/json'};
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
     var body = {};
-
-    // Retrieve the token from storage
-    final token = await getToken();
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
-    } else {
-      // TODO: Handle the case when the token is not available (e.g., user not logged in)
-      // You may choose to redirect to the login screen or show an error message.
-      setState(() {
-        message = 'User not logged in. Please log in.';
-      });
-      return;
-    }
 
     if (_scanResult.isNotEmpty) {
       body['upc'] = _scanResult;
