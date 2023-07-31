@@ -1,16 +1,24 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_app/components/path.dart' show buildPath;
+import 'package:http/http.dart' as http;
 
 class ParserResultsPage extends StatelessWidget {
   final dynamic foodResults;
   final dynamic nextPage;
   final String text;
 
-  const ParserResultsPage({
+  ParserResultsPage({
     super.key,
     required this.foodResults,
     required this.nextPage,
     required this.text,
   });
+
+  // Add the NutritionHelper instance
+  final NutritionHelper nutritionHelper = NutritionHelper();
 
   @override
   Widget build(BuildContext context) {
@@ -47,8 +55,10 @@ class ParserResultsPage extends StatelessWidget {
                 var formattedCalories = enercKcal.toStringAsFixed(2);
 
                 return GestureDetector(
-                  onTap: () {
-                    print(label); // Print the "label" when the tile is pressed
+                  onTap: () async {
+                    // Call the nutrients method when the tile is pressed
+                    await nutritionHelper.nutrients(
+                        context, foodResults[index]);
                   },
                   child: Container(
                     margin: const EdgeInsets.all(
@@ -104,4 +114,127 @@ class ParserResultsPage extends StatelessWidget {
       ),
     );
   }
+}
+
+class NutritionHelper {
+  // Replace with your API base URL and token retrieval logic
+  static const String baseUrl = 'https://api.example.com';
+
+  Future<String> getToken() async {
+    const storage = FlutterSecureStorage();
+    String? token = await storage.read(key: 'auth_token');
+    return token ?? '';
+  }
+
+  Future<Map<dynamic, dynamic>> nutrients(
+      BuildContext context, dynamic foodResults) async {
+    var path = await buildPath('api/nutrients');
+    var url = Uri.parse(path);
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    // Extract values from foodResults and use them in the request body
+    List<Map<String, dynamic>> ingredients =
+        foodResults.map<Map<String, dynamic>>((foodResult) {
+      var food = foodResult['food'];
+      return {
+        "quantity": 100,
+        "measureURI":
+            "http://www.edamam.com/ontologies/edamam.owl#Measure_gram",
+        "qualifiers": [],
+        "foodId": food['foodId'],
+      };
+    }).toList();
+
+    var body = {
+      "ingredients": ingredients,
+    };
+
+    try {
+      var response =
+          await http.post(url, headers: headers, body: jsonEncode(body));
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        // Handle the response
+        var nutrientData = res;
+        var responseObj = {
+          "uri": nutrientData['uri'],
+          "calories": nutrientData['calories'],
+          "totalWeight": nutrientData['totalWeight'],
+          "dietLabels": nutrientData['dietLabels'],
+          "healthLabels": nutrientData['healthLabels'],
+          "cautions": nutrientData['cautions'],
+          "totalNutrients": nutrientData['totalNutrients'],
+          "totalDaily": nutrientData['totalDaily'],
+          "ingredients": nutrientData['ingredients'].map((ingredientData) {
+            return {"parsed": ingredientData['parsed']};
+          }).toList(),
+        };
+
+        // Successful response
+        print(responseObj); // Use the responseObj as needed
+        return responseObj; // Return the responseObj
+      } else {
+        // Handle other status codes
+        var errorMessage = res['error'];
+        print(errorMessage);
+        throw errorMessage; // Throw an error to be handled by the caller
+      }
+    } catch (e) {
+      _showErrorDialog(context, e.toString());
+      throw e; // Throw an error to be handled by the caller
+    }
+  }
+
+  String getMeasureURI(dynamic measures) {
+    // Replace this method to find and return the measureURI for grams
+    // Loop through the measures and find the one for grams, then return its URI.
+    // If not found, return a default measureURI or handle it as appropriate.
+    return "http://www.edamam.com/ontologies/edamam.owl#Measure_gram";
+  }
+
+  Future<void> _showErrorDialog(
+      BuildContext context, String errorMessage) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Error'),
+          content: Text(errorMessage),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+Future<void> _showErrorDialog(BuildContext context, String errorMessage) async {
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: const Text('Error'),
+        content: Text(errorMessage),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      );
+    },
+  );
 }
