@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 class NutrientsPage extends StatelessWidget {
   final Map<dynamic, dynamic> responseObj;
+  final bool viewOnly;
 
-  NutrientsPage({Key? key, required this.responseObj}) : super(key: key);
+  NutrientsPage({Key? key, required this.responseObj, this.viewOnly = false})
+      : super(key: key);
 
   // Mapping of nutrient labels to their corresponding user-friendly names
   final Map<String, String> nutrientNameMap = {
@@ -26,7 +28,7 @@ class NutrientsPage extends StatelessWidget {
     "Vitamin C, total ascorbic acid": "Vitamin C",
     "Vitamin D (D2 + D3)": "Vitamin D",
     "Vitamin E (alpha-tocopherol)": "Vitamin E",
-    "Vitamin D (phylloquinone)": "Vitamin K",
+    "Vitamin K (phylloquinone)": "Vitamin K",
   };
 
   // Set of nutrient labels to be bolded
@@ -41,6 +43,7 @@ class NutrientsPage extends StatelessWidget {
   // Set of nutrient labels to be indented
   final Set<String> indentedNutrients = {
     "Saturated Fat",
+    "Trans Fat",
     "Monounsaturated Fat",
     "Polyunsaturated Fat",
     "Net Carbohydrates",
@@ -174,6 +177,14 @@ class NutrientsPage extends StatelessWidget {
           ),
         ),
       ),
+      floatingActionButton: !viewOnly
+          ? FloatingActionButton(
+              onPressed: () {
+                print("pressed");
+              },
+              child: const Icon(Icons.add),
+            )
+          : null, // Hide the button if viewOnly is true
     );
   }
 }

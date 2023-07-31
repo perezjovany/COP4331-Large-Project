@@ -50,6 +50,8 @@ class ParserResultsPage extends StatelessWidget {
 
                 // Extract the "label" and "ENERC_KCAL" from the food item
                 var label = food['label'];
+                var brand = food['brand'] ??
+                    'Generic Food'; // If 'brand' is null, use 'Generic Food'
                 var enercKcal = food['nutrients']['ENERC_KCAL'];
 
                 // Round calories to the nearest hundredths place
@@ -102,6 +104,14 @@ class ParserResultsPage extends StatelessWidget {
                             fontSize: 20,
                             color:
                                 Colors.white, // Change the text color to white
+                          ),
+                        ),
+                        Text(
+                          brand, // Display 'brand' under 'label'
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 8.0),
