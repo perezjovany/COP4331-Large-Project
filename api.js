@@ -40,7 +40,7 @@ exports.setApp = function ( app, client )
   // Middleware to authenticate the JWT token
   function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
-    const token = authHeader;
+    const token = authHeader && authHeader.split(' ')[1];
     if (token == null) {
       return res.status(401).json({ error: 'MISSING AUTHORIZATION HEADER' });
     }
