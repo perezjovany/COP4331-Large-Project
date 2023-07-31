@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_app/nutrients.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_app/components/path.dart' show buildPath;
 import 'package:http/http.dart' as http;
@@ -57,8 +58,17 @@ class ParserResultsPage extends StatelessWidget {
                 return GestureDetector(
                   onTap: () async {
                     // Call the nutrients method when the tile is pressed
-                    await nutritionHelper.nutrients(
+                    var responseObj = await nutritionHelper.nutrients(
                         context, foodResults[index]);
+
+                    // Navigate to NutrientsPage and pass the responseObj as arguments
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            NutrientsPage(responseObj: responseObj),
+                      ),
+                    );
                   },
                   child: Container(
                     margin: const EdgeInsets.all(
@@ -117,9 +127,6 @@ class ParserResultsPage extends StatelessWidget {
 }
 
 class NutritionHelper {
-  // Replace with your API base URL and token retrieval logic
-  static const String baseUrl = 'https://api.example.com';
-
   Future<String> getToken() async {
     const storage = FlutterSecureStorage();
     String? token = await storage.read(key: 'auth_token');
@@ -127,7 +134,7 @@ class NutritionHelper {
   }
 
   Future<Map<dynamic, dynamic>> nutrients(
-      BuildContext context, dynamic foodResults) async {
+      BuildContext context, dynamic foodItem) async {
     var path = await buildPath('api/nutrients');
     var url = Uri.parse(path);
     var token = await getToken();
@@ -136,24 +143,23 @@ class NutritionHelper {
       'Authorization': 'Bearer $token',
     };
 
-    // Extract values from foodResults and use them in the request body
-    List<Map<String, dynamic>> ingredients =
-        foodResults.map<Map<String, dynamic>>((foodResult) {
-      var food = foodResult['food'];
-      return {
-        "quantity": 100,
-        "measureURI":
-            "http://www.edamam.com/ontologies/edamam.owl#Measure_gram",
-        "qualifiers": [],
-        "foodId": food['foodId'],
-      };
-    }).toList();
-
-    var body = {
-      "ingredients": ingredients,
-    };
-
     try {
+      // Use the indexed foodItem directly
+      var food = foodItem['food'];
+      List<Map<String, dynamic>> ingredients = [
+        {
+          "quantity": 100,
+          "measureURI":
+              "http://www.edamam.com/ontologies/edamam.owl#Measure_gram",
+          "qualifiers": [],
+          "foodId": food['foodId'],
+        },
+      ];
+
+      var body = {
+        "ingredients": ingredients,
+      };
+
       var response =
           await http.post(url, headers: headers, body: jsonEncode(body));
       var res = jsonDecode(response.body);
@@ -176,7 +182,7 @@ class NutritionHelper {
         };
 
         // Successful response
-        print(responseObj); // Use the responseObj as needed
+        // print(responseObj); // Use the responseObj as needed
         return responseObj; // Return the responseObj
       } else {
         // Handle other status codes
@@ -188,13 +194,6 @@ class NutritionHelper {
       _showErrorDialog(context, e.toString());
       throw e; // Throw an error to be handled by the caller
     }
-  }
-
-  String getMeasureURI(dynamic measures) {
-    // Replace this method to find and return the measureURI for grams
-    // Loop through the measures and find the one for grams, then return its URI.
-    // If not found, return a default measureURI or handle it as appropriate.
-    return "http://www.edamam.com/ontologies/edamam.owl#Measure_gram";
   }
 
   Future<void> _showErrorDialog(
