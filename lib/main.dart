@@ -1,7 +1,6 @@
 //======= Import Statements =======
 
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_app/parser_results.dart';
 import 'package:intl/intl.dart';
@@ -26,6 +25,17 @@ import 'package:flutter_typeahead/flutter_typeahead.dart';
 void main() => runApp(const MyApp());
 
 //======= Root Widget MyApp =======
+
+class FridgeItem {
+  final int fridgeItemId;
+  final String foodLabel;
+  final DateTime expirationDate;
+  final String measure;
+  final double totalCalories;
+  dynamic ingredients;
+
+  FridgeItem(this.fridgeItemId, this.foodLabel, this.ingredients, this.expirationDate, this.measure, this.totalCalories);
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -66,7 +76,7 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   // TextEditingController nutritionTypeController = TextEditingController(); //TODO: Implement cooking vs logging
   TextEditingController ingController = TextEditingController();
-  List<Map<String, dynamic>> _fridgeItems = [];
+  List<FridgeItem> _fridgeItems = [];
   ScanController controller = ScanController();
   List<String> _suggestions = [];
   BuildContext? _context;
@@ -259,7 +269,7 @@ class _MainPageState extends State<MainPage> {
         var fridgeItemIds = List<int>.from(data);
 
         // Fetch individual fridge items using fridgeItemIds
-        List<Map<String, dynamic>> fridgeItems = [];
+        List<FridgeItem> fridgeItems = [];
         for (var fridgeItemId in fridgeItemIds) {
           path = await buildPath('api/get_fridge_item/$fridgeItemId');
           url = Uri.parse(path);
@@ -267,7 +277,16 @@ class _MainPageState extends State<MainPage> {
           if (fridgeItemResponse.statusCode == 200) {
             var fridgeItemData =
                 jsonDecode(fridgeItemResponse.body)['fridgeItem'];
-            fridgeItems.add(fridgeItemData);
+
+            var itemId = fridgeItemData['fridgeItemId'];
+            var foodLabel = fridgeItemData['foodLabel'];
+            var ingredients = fridgeItemData['ingredients'];
+            var expirationDate = DateTime.parse(fridgeItemData['expirationDate']);
+            var measure = fridgeItemData['measure'];
+            double totalCalories = fridgeItemData['totalCalories'];
+
+
+            fridgeItems.add(FridgeItem(itemId, foodLabel, ingredients, expirationDate, measure, totalCalories));
           } else {
             _showErrorDialog('Failed to fetch fridge item details.');
           }
@@ -278,6 +297,38 @@ class _MainPageState extends State<MainPage> {
         });
       } else {
         _showErrorDialog('Failed to fetch fridge item IDs.');
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
+  }
+
+  Future<void> _deleteFridgeItem(FridgeItem item) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
+    var userId = userData['userId'];
+
+    var path = await buildPath('api/delete_fridge_item');
+    var url = Uri.parse(path);
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
+    var body = jsonEncode({'fridgeItemId': item.fridgeItemId});
+
+    try {
+      var response = await http.delete(url, headers: headers, body: body);
+      print('Status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _fridgeItems.remove(item);
+        });
+      } else {
+        _showErrorDialog(res['error']);
       }
     } catch (e) {
       _showErrorDialog(e.toString());
@@ -442,15 +493,17 @@ class _MainPageState extends State<MainPage> {
               itemCount: _fridgeItems.length,
               itemBuilder: (context, index) {
                 var fridgeItem = _fridgeItems[index];
+                var itemId = fridgeItem.fridgeItemId;
                 return FridgeItemWidget(
-                  foodLabel: fridgeItem['foodLabel'],
-                  expirationDate: DateTime.parse(fridgeItem['expirationDate']),
-                  totalCalories: fridgeItem['totalCalories'],
-                  quantity: fridgeItem['ingredients'][0]['quantity'],
-                  measure: fridgeItem['measure'],
+                  fridgeItemId: fridgeItem.fridgeItemId,
+                  foodLabel: fridgeItem.foodLabel,
+                  expirationDate: fridgeItem.expirationDate,
+                  totalCalories: fridgeItem.totalCalories,
+                  quantity: fridgeItem.ingredients[0]['quantity'],
+                  measure: fridgeItem.measure,
                   onTap: () {
                     // TODO: Navigate to the nutrients page when tapped
-                    print("Tapped!");
+                    print("Tapped! $itemId");
                   },
                   onEdit: () {
                     // TODO: Implement edit functionality
@@ -459,6 +512,7 @@ class _MainPageState extends State<MainPage> {
                   onDelete: () {
                     // TODO: Implement delete functionality
                     print("Delete Button!");
+                    _deleteFridgeItem(fridgeItem);
                   },
                 );
               },
@@ -483,6 +537,7 @@ String formatQuantity(double quantity, String measure) {
 }
 
 class FridgeItemWidget extends StatelessWidget {
+  final int fridgeItemId;
   final String foodLabel;
   final DateTime expirationDate;
   final double totalCalories;
@@ -494,6 +549,7 @@ class FridgeItemWidget extends StatelessWidget {
 
   const FridgeItemWidget({
     super.key,
+    required this.fridgeItemId,
     required this.foodLabel,
     required this.expirationDate,
     required this.totalCalories,
