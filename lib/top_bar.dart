@@ -27,25 +27,25 @@ class topBar extends StatelessWidget implements PreferredSizeWidget {
 
       title: Text(title),
       actions: <Widget>[
-        Align(
-          alignment: Alignment.center,
-          child: Padding(
-            padding: const EdgeInsets.only(right: 10.0),
-            child: PopupMenuButton<String>(
-              icon: const Icon(Icons.notifications, size: 30.0),
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
-                  value: 'Option1',
-                  child: Text('Option 1'),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'Option2',
-                  child: Text('Option 2'),
-                ),
-              ],
-            ),
-          ),
-        ),
+        // Align(
+        //   alignment: Alignment.center,
+        //   child: Padding(
+        //     padding: const EdgeInsets.only(right: 10.0),
+        //     child: PopupMenuButton<String>(
+        //       icon: const Icon(Icons.notifications, size: 30.0),
+        //       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        //         const PopupMenuItem<String>(
+        //           value: 'Option1',
+        //           child: Text('Option 1'),
+        //         ),
+        //         const PopupMenuItem<String>(
+        //           value: 'Option2',
+        //           child: Text('Option 2'),
+        //         ),
+        //       ],
+        //     ),
+        //   ),
+        // ), /* Didn't have time to implement notifications :-( */ 
 
         Align(
           alignment: Alignment.center,
