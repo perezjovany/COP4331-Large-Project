@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_app/parser_results.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
@@ -63,13 +64,21 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  ScanController controller = ScanController();
-  TextEditingController ingController = TextEditingController();
   // TextEditingController nutritionTypeController = TextEditingController(); //TODO: Implement cooking vs logging
-  String message = '';
-  var _scanResult = ''; // Assuming this holds the "upc" value.
-  List<String> _suggestions = [];
+  TextEditingController ingController = TextEditingController();
   List<Map<String, dynamic>> _fridgeItems = [];
+  ScanController controller = ScanController();
+  List<String> _suggestions = [];
+  BuildContext? _context;
+  var _scanResult = ''; // Assuming this holds the "upc" value.
+  String message = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _context = context;
+    _fetchFridgeItems();
+  }
 
   // Function to handle getting the token
   Future<String> getToken() async {
@@ -112,12 +121,22 @@ class _MainPageState extends State<MainPage> {
           message = '';
         });
 
-        // Do something with the food results
         var foodResults = res['foodResults'];
         var nextPage = res['nextPage'];
         var text = res['text'];
 
-        _showErrorDialog(text); //TODO: FOR TESTING, REMOVE
+        Navigator.push(
+          _context!,
+          MaterialPageRoute(
+            builder: (context) => ParserResultsPage(
+              foodResults: foodResults,
+              nextPage: nextPage,
+              text: text,
+            ),
+          ),
+        );
+
+        print(text); //TODO: FOR TESTING, REMOVE
       } else {
         // Other status codes
         setState(() {
@@ -218,12 +237,6 @@ class _MainPageState extends State<MainPage> {
         TextPosition(offset: ingController.text.length),
       );
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchFridgeItems();
   }
 
   Future<void> _fetchFridgeItems() async {
