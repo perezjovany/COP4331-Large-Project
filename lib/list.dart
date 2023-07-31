@@ -66,7 +66,7 @@ class State_List extends State<ListPage> {
       var token = await getToken();
       var headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
+        'Authorization': '$token'
       };
       var body = jsonEncode({'userId': userId, 'label': title});
 
@@ -96,7 +96,7 @@ class State_List extends State<ListPage> {
       var token = await getToken();
       var headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
+        'Authorization': '$token'
       };
       var body = jsonEncode({'listId': checkList.listId, 'label': title});
 
@@ -124,7 +124,7 @@ class State_List extends State<ListPage> {
     var token = await getToken();
     var headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
+      'Authorization': '$token',
     };
     var body = jsonEncode({'listId': checkList.listId, 'label': newTitle});
 
@@ -151,7 +151,7 @@ class State_List extends State<ListPage> {
     var token = await getToken();
     var headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
+      'Authorization': '$token'
     };
     var body = jsonEncode({'listId': checkList.listId});
 
@@ -177,7 +177,7 @@ class State_List extends State<ListPage> {
     var token = await getToken();
     var headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
+      'Authorization': '$token'
     };
     var body = jsonEncode(
         {'listItemId': item.itemId, 'isChecked': (!item.checked).toString()});
@@ -205,7 +205,7 @@ class State_List extends State<ListPage> {
     var token = await getToken();
     var headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
+      'Authorization': '$token'
     };
     var body = jsonEncode({
       'listItemId': itemId,
@@ -234,7 +234,7 @@ class State_List extends State<ListPage> {
     var token = await getToken();
     var headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
+      'Authorization': '$token'
     };
     var body = jsonEncode({'listItemId': item.itemId});
 
@@ -272,7 +272,7 @@ class State_List extends State<ListPage> {
       var token = await getToken();
       var headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
+        'Authorization': '$token'
       };
 
       var response = await http.get(url, headers: headers);

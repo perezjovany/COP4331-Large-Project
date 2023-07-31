@@ -82,7 +82,7 @@ class _MainPageState extends State<MainPage> {
     // Retrieve the token from storage
     final token = await getToken();
     if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
+      headers['Authorization'] = '$token';
     } else {
       // TODO: Handle the case when the token is not available (e.g., user not logged in)
       // You may choose to redirect to the login screen or show an error message.
