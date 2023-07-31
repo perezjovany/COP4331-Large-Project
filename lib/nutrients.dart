@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class NutrientsPage extends StatelessWidget {
   final Map<dynamic, dynamic> responseObj;
@@ -180,11 +181,95 @@ class NutrientsPage extends StatelessWidget {
       floatingActionButton: !viewOnly
           ? FloatingActionButton(
               onPressed: () {
-                print("pressed");
+                // Show the custom dialog when the FAB is pressed
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AddToFridgeDialog(foodName: foodData['food']);
+                  },
+                );
               },
               child: const Icon(Icons.add),
             )
-          : null, // Hide the button if viewOnly is true
+          : null,
+    );
+  }
+}
+
+class AddToFridgeDialog extends StatefulWidget {
+  final String foodName;
+  final bool viewOnly;
+
+  const AddToFridgeDialog(
+      {Key? key, required this.foodName, this.viewOnly = false})
+      : super(key: key);
+
+  @override
+  _AddToFridgeDialogState createState() => _AddToFridgeDialogState();
+}
+
+class _AddToFridgeDialogState extends State<AddToFridgeDialog> {
+  DateTime selectedDate = DateTime.now();
+  double quantity = 1.0;
+  TextEditingController quantityController = TextEditingController();
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Add ${widget.foodName} to Fridge'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              'Expiration Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}'),
+          ElevatedButton(
+            onPressed: () => _selectDate(context),
+            child: const Text('Select Date'),
+          ),
+          const SizedBox(height: 16),
+          const Text('Quantity:'),
+          TextFormField(
+            controller: quantityController,
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            onChanged: (value) {
+              setState(() {
+                quantity = double.tryParse(value) ?? 1.0;
+              });
+            },
+          ),
+        ],
+      ),
+      actions: [
+        ElevatedButton(
+          onPressed: () {
+            // TODO: Add the food item to the fridge with selectedDate and quantity
+            Navigator.of(context).pop();
+          },
+          child: const Text('Add to Fridge'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: const Text('Cancel'),
+        ),
+      ],
     );
   }
 }
