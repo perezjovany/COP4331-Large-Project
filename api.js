@@ -586,7 +586,7 @@ exports.setApp = function ( app, client )
   app.post('/api/create_fridge_item', authenticateToken, async (req, res, next) => {
     try {
       // incoming: userid, expirationDate, foodLabel, totalCalories, measure, ingredient
-      // outgoing: error
+      // outgoing: _id, error
 
       const { userId, expirationDate, foodLabel, totalCalories, measure, ingredients } = req.body;
 
@@ -604,10 +604,10 @@ exports.setApp = function ( app, client )
         ingredients: ingredients
       });
 
-      await newFridgeItem.save();
+      const savedFridgeItem = await newFridgeItem.save();
 
-      // Successful response with 200 status
-      res.status(200).json({ error: '' });
+      // Successful response with 200 status and _id field in the response
+      res.status(200).json({ _id: savedFridgeItem._id, error: '' });
     } catch (error) {
       handleError(error, res);
     }
@@ -617,18 +617,18 @@ exports.setApp = function ( app, client )
   // HTTP Method: PUT
   app.put('/api/update_fridge_item', authenticateToken, async (req, res, next) => {
     try {
-      // incoming: fridgeItemId, experationDate, foodLabel, totalCalories, measure, ingredients
-      // outgoing: error
-  
+      // incoming: fridgeItemId, expirationDate, foodLabel, totalCalories, measure, ingredients
+      // outgoing: fridgeItem
+
       const { fridgeItemId, expirationDate, foodLabel, totalCalories, measure, ingredients } = req.body;
-  
+
       // Input Validation
       if (!fridgeItemId || !expirationDate || !foodLabel || !totalCalories || !measure || !ingredients) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-  
+
       const updatedFridgeItem = await FridgeItem.findOneAndUpdate(
-        { fridgeItemId: fridgeItemId },
+        { _id: fridgeItemId }, // Use "_id" instead of "fridgeItemId"
         {
           expirationDate: expirationDate,
           foodLabel: foodLabel,
@@ -638,12 +638,13 @@ exports.setApp = function ( app, client )
         },
         { new: true } // Returns the updated item
       );
-  
+
       if (!updatedFridgeItem) {
         return res.status(404).json({ error: 'Fridge item not found' });
       }
-  
-      res.status(200).json({ error: '' });
+
+      // Return the updated fridgeItem object directly without a wrapper object
+      res.status(200).json(updatedFridgeItem);
     } catch (error) {
       handleError(error, res);
     }
@@ -655,20 +656,21 @@ exports.setApp = function ( app, client )
     try {
       // incoming: fridgeItemId
       // outgoing: fridgeItem
-  
+
       const fridgeItemId = req.params.fridgeItemId;
-  
+
       if (!fridgeItemId) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-  
-      const fridgeItem = await FridgeItem.findOne({ fridgeItemId: fridgeItemId });
-  
+
+      const fridgeItem = await FridgeItem.findOne({ _id: fridgeItemId });
+
       if (!fridgeItem) {
         return res.status(404).json({ error: 'Fridge item not found' });
       }
-  
-      res.status(200).json({ fridgeItem });
+
+      // Return the fridgeItem object directly without a wrapper object
+      res.status(200).json(fridgeItem);
     } catch (error) {
       handleError(error, res);
     }
@@ -679,7 +681,7 @@ exports.setApp = function ( app, client )
   app.get('/api/get_all_fridge_items/:userId', authenticateToken, async (req, res, next) => {
     try {
       // incoming: userId
-      // outgoing: fridgeItemIds
+      // outgoing: fridgeItems
 
       const userId = req.params.userId;
 
@@ -687,16 +689,13 @@ exports.setApp = function ( app, client )
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      const fridgeItems = await FridgeItem.find({ userId: userId }, 'fridgeItemId');
+      const fridgeItems = await FridgeItem.find({ userId: userId }, "_id");
 
-      if (!fridgeItems) {
+      if (!fridgeItems || fridgeItems.length === 0) {
         return res.status(404).json({ error: 'No fridge items found for the given user' });
       }
 
-      // Extracting fridgeItemId from each fridgeItem
-      const fridgeItemIds = fridgeItems.map(item => item.fridgeItemId);
-
-      res.status(200).json(fridgeItemIds);
+      res.status(200).json(fridgeItems);
     } catch (error) {
       handleError(error, res);
     }
@@ -708,19 +707,20 @@ exports.setApp = function ( app, client )
     try {
       // incoming: fridgeItemId
       // outgoing: error
-
+  
       const { fridgeItemId } = req.body;
-
+  
       if (!fridgeItemId) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-
-      const deletedFridgeItem = await FridgeItem.findOneAndDelete({ fridgeItemId: fridgeItemId });
-
+  
+      // Use "_id" instead of "fridgeItemId" in the query
+      const deletedFridgeItem = await FridgeItem.findOneAndDelete({ _id: fridgeItemId });
+  
       if (!deletedFridgeItem) {
         return res.status(404).json({ error: 'Fridge item not found' });
       }
-
+  
       res.status(200).json({ error: '' });
     } catch (error) {
       handleError(error, res);

@@ -27,14 +27,15 @@ void main() => runApp(const MyApp());
 //======= Root Widget MyApp =======
 
 class FridgeItem {
-  final int fridgeItemId;
+  final String fridgeItemId;
   final String foodLabel;
   final DateTime expirationDate;
   final String measure;
   final double totalCalories;
   dynamic ingredients;
 
-  FridgeItem(this.fridgeItemId, this.foodLabel, this.ingredients, this.expirationDate, this.measure, this.totalCalories);
+  FridgeItem(this.fridgeItemId, this.foodLabel, this.ingredients,
+      this.expirationDate, this.measure, this.totalCalories);
 }
 
 class MyApp extends StatelessWidget {
@@ -266,27 +267,29 @@ class _MainPageState extends State<MainPage> {
       var response = await http.get(url, headers: headers);
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
-        var fridgeItemIds = List<int>.from(data);
+        var fridgeItemsData = List<Map<String, dynamic>>.from(data);
 
         // Fetch individual fridge items using fridgeItemIds
         List<FridgeItem> fridgeItems = [];
-        for (var fridgeItemId in fridgeItemIds) {
+        for (var fridgeItemData in fridgeItemsData) {
+          var fridgeItemId = fridgeItemData['_id'];
+
           path = await buildPath('api/get_fridge_item/$fridgeItemId');
           url = Uri.parse(path);
           var fridgeItemResponse = await http.get(url, headers: headers);
           if (fridgeItemResponse.statusCode == 200) {
-            var fridgeItemData =
-                jsonDecode(fridgeItemResponse.body)['fridgeItem'];
+            var fridgeItemData = jsonDecode(fridgeItemResponse.body);
 
-            var itemId = fridgeItemData['fridgeItemId'];
+            var itemId = fridgeItemData['_id'];
             var foodLabel = fridgeItemData['foodLabel'];
             var ingredients = fridgeItemData['ingredients'];
-            var expirationDate = DateTime.parse(fridgeItemData['expirationDate']);
+            var expirationDate =
+                DateTime.parse(fridgeItemData['expirationDate']);
             var measure = fridgeItemData['measure'];
             double totalCalories = fridgeItemData['totalCalories'];
 
-
-            fridgeItems.add(FridgeItem(itemId, foodLabel, ingredients, expirationDate, measure, totalCalories));
+            fridgeItems.add(FridgeItem(itemId, foodLabel, ingredients,
+                expirationDate, measure, totalCalories));
           } else {
             _showErrorDialog('Failed to fetch fridge item details.');
           }
@@ -537,7 +540,7 @@ String formatQuantity(double quantity, String measure) {
 }
 
 class FridgeItemWidget extends StatelessWidget {
-  final int fridgeItemId;
+  final String fridgeItemId;
   final String foodLabel;
   final DateTime expirationDate;
   final double totalCalories;
