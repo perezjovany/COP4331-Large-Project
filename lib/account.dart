@@ -1,6 +1,48 @@
 import 'package:flutter/material.dart';
 import 'top_bar.dart';
 import 'bottom_bar.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_app/components/path.dart' show buildPath;
+import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class User {
+  String id;
+  int userId;
+  String firstName;
+  String lastName;
+  String login;
+  String password;
+  String email;
+  String phone;
+  bool isVerified;
+  int? daysLeft;
+  bool? isLightMode;
+
+  bool isEditing;
+  TextEditingController nameController;
+  TextEditingController emailController;
+  TextEditingController phoneController;
+
+  User({
+    required this.id,
+    required this.userId,
+    required this.firstName,
+    required this.lastName,
+    required this.login,
+    required this.password,
+    required this.email,
+    required this.phone,
+    required this.isVerified,
+    required this.daysLeft,
+    required this.isLightMode,
+  })  : this.isEditing = false,
+        this.nameController =
+            TextEditingController(text: "$firstName $lastName"),
+        this.emailController = TextEditingController(text: email),
+        this.phoneController = TextEditingController(text: phone);
+}
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -10,169 +52,191 @@ class AccountPage extends StatefulWidget {
 }
 
 class State_Account extends State<AccountPage> {
+  User? _user;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  // PLACEHOLDER user details
-  String name = "Full Name";
-  String email = "user@example.com";
-  String password = "password";
-
-  bool seePass = true;
-
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  Future<String> getToken() async {
+    const storage = FlutterSecureStorage();
+    String? token = await storage.read(key: 'auth_token');
+    return token ?? '';
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadUser();
+  }
 
-    // Initialize text fields with user details
-    nameController.text = name;
-    emailController.text = email;
-    passwordController.text = password;
+  Future<void> _loadUser() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
+      var userId = userData['userId'].toString();
+
+      var path = await buildPath('api/get_user/$userId');
+      var url = Uri.parse(path);
+      print('URL: $url'); // print the URL for debugging
+
+      var token = await getToken();
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      };
+
+      var response = await http.get(url, headers: headers);
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        var userRes = res['user'];
+        setState(() {
+          _user = User(
+              id: userRes['_id'],
+              userId: userRes['userId'],
+              firstName: userRes['firstName'],
+              lastName: userRes['lastName'],
+              login: userRes['login'],
+              password: userRes['password'],
+              email: userRes['email'],
+              phone: userRes['phone'],
+              isVerified: userRes['isVerified'],
+              daysLeft: userRes['daysLeft'] ?? 0, // Use 0 if daysLeft is null
+              isLightMode: userRes['isLightMode'] ??
+                  false); // Use false if isLightMode is null
+        });
+      } else {
+        _showErrorDialog(res['error']);
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
+  }
+
+  Future<void> _updateUser(User user) async {
+    var path = await buildPath('api/update_user');
+    var url = Uri.parse(path);
+    print('URL: $url'); // print the URL for debugging
+
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
+
+    var body = jsonEncode({
+      'userId': user.userId,
+      'firstName': user.firstName,
+      'lastName': user.lastName,
+      'phone': user.phone,
+      'daysLeft': user.daysLeft,
+      'isLightMode': user.isLightMode
+    });
+
+    var response = await http.put(url, headers: headers, body: body);
+
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
+    var res = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      print('User updated successfully');
+    } else {
+      _showErrorDialog(res['error']);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const topBar(title: 'Account Settings'), // Custom app bar
-      body: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            // Container size according to device
-            width: MediaQuery.of(context).size.width > 600 ? 600 : MediaQuery.of(context).size.width,
-            padding: const EdgeInsets.all(20), // Padding for the child elements
-            decoration: BoxDecoration( // Container shadow
-
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  spreadRadius: 5,
-                  blurRadius: 7,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  // User account icon
-                  const Icon(
-                    Icons.account_circle,
-                    size: 80,
-                    color: Colors.green,
-                  ),
-
-                  const SizedBox(height: 20), // Spacing
-                  Card(
-                    elevation: 8.0, // Elevation for the card
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Column(
-                        children: [
-                          // Full name field
-                          TextFormField(
-                            controller: nameController,
-                            decoration: const InputDecoration(labelText: 'Full Name'),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your full name';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 10), // Spacing
-                          // Email field
-                          TextFormField(
-                            controller: emailController,
-                            decoration: const InputDecoration(labelText: 'Email'),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 10), // Spacing
-                          // Password field
-                          TextFormField(
-                            controller: passwordController,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              // Toggle visibility of password
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  seePass ? Icons.visibility : Icons.visibility_off,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    seePass = !seePass;
-                                  });
-                                },
-                              ),
-                            ),
-
-                            obscureText: seePass,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20), // Spacing
-                  // Save changes button
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
-                      textStyle: const TextStyle(
-                        fontSize: 20,
-                      ),
-                    ),
-
-                    child: const Text('Save Changes'),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        setState(() {
-
-                          name = nameController.text;
-                          email = emailController.text;
-                          password = passwordController.text;
-
-                        });
-
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(const SnackBar(content: Text('Changes saved')));
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+      appBar: const topBar(title: 'Account Settings'), // Page Title
+      body:
+          _user != null ? _buildUserForm(_user!) : CircularProgressIndicator(),
       bottomNavigationBar: const bottomBar(
-        selectedIndex: null, // No selected index on this page
+        selectedIndex:
+            2, // Sets the selected index of the bottom navigation bar to 2
       ),
     );
   }
+
+  Future<void> _showErrorDialog(String errorMessage) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Error'),
+          content: Text(errorMessage),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildUserForm(User user) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: <Widget>[
+          TextFormField(
+            controller: user.nameController,
+            decoration: const InputDecoration(labelText: 'Full Name'),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your full name';
+              }
+              return null;
+            },
+          ),
+          TextFormField(
+            controller: user.emailController,
+            decoration: const InputDecoration(labelText: 'Email'),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your email';
+              }
+              return null;
+            },
+          ),
+          TextFormField(
+            controller: user.phoneController,
+            decoration: const InputDecoration(labelText: 'Phone'),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your phone number';
+              }
+              return null;
+            },
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                setState(() {
+                  user.firstName = user.nameController.text.split(' ')[0];
+                  user.lastName = user.nameController.text.split(' ')[1];
+                  user.email = user.emailController.text;
+                  user.phone = user.phoneController.text;
+                });
+                _updateUser(user);
+              }
+            },
+            child: const Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+void main() {
+  runApp(const AccountPage());
 }
