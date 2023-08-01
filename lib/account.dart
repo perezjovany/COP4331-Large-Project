@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'top_bar.dart';
 import 'bottom_bar.dart';
 
@@ -13,24 +15,47 @@ class State_Account extends State<AccountPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   // PLACEHOLDER user details
-  String name = "Full Name";
-  String email = "user@example.com";
-  String password = "password";
+  String firstName = "First Name";
+  String lastName = "Last Name";
+  String phone = "Phone Number";
+  String userId = "User ID";
+  int daysLeft = 30; // placeholder value
+  bool isLightMode = true; // placeholder value
 
-  bool seePass = true;
-
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  final firstNameController = TextEditingController();
+  final lastNameController = TextEditingController();
+  final phoneController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
 
     // Initialize text fields with user details
-    nameController.text = name;
-    emailController.text = email;
-    passwordController.text = password;
+    firstNameController.text = firstName;
+    lastNameController.text = lastName;
+    phoneController.text = phone;
+  }
+
+  Future<void> updateUser(String userId, String firstName, String lastName,
+      String phone, int daysLeft, bool isLightMode) async {
+    final response = await http.put(
+      Uri.parse('/api/update_user'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, dynamic>{
+        'userId': userId,
+        'firstName': firstName,
+        'lastName': lastName,
+        'phone': phone,
+        'daysLeft': daysLeft,
+        'isLightMode': isLightMode,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update user.');
+    }
   }
 
   @override
@@ -41,10 +66,12 @@ class State_Account extends State<AccountPage> {
         child: SingleChildScrollView(
           child: Container(
             // Container size according to device
-            width: MediaQuery.of(context).size.width > 600 ? 600 : MediaQuery.of(context).size.width,
+            width: MediaQuery.of(context).size.width > 600
+                ? 600
+                : MediaQuery.of(context).size.width,
             padding: const EdgeInsets.all(20), // Padding for the child elements
-            decoration: BoxDecoration( // Container shadow
-
+            decoration: BoxDecoration(
+              // Container shadow
               color: Colors.white,
               borderRadius: BorderRadius.circular(10.0),
               boxShadow: [
@@ -80,54 +107,42 @@ class State_Account extends State<AccountPage> {
                       padding: const EdgeInsets.all(10.0),
                       child: Column(
                         children: [
-                          // Full name field
+                          // First name field
                           TextFormField(
-                            controller: nameController,
-                            decoration: const InputDecoration(labelText: 'Full Name'),
+                            controller: firstNameController,
+                            decoration:
+                                const InputDecoration(labelText: 'First Name'),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your full name';
+                                return 'Please enter your first name';
                               }
                               return null;
                             },
                           ),
 
                           const SizedBox(height: 10), // Spacing
-                          // Email field
+                          // Last name field
                           TextFormField(
-                            controller: emailController,
-                            decoration: const InputDecoration(labelText: 'Email'),
+                            controller: lastNameController,
+                            decoration:
+                                const InputDecoration(labelText: 'Last Name'),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
+                                return 'Please enter your last name';
                               }
                               return null;
                             },
                           ),
 
                           const SizedBox(height: 10), // Spacing
-                          // Password field
+                          // Phone number field
                           TextFormField(
-                            controller: passwordController,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              // Toggle visibility of password
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  seePass ? Icons.visibility : Icons.visibility_off,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    seePass = !seePass;
-                                  });
-                                },
-                              ),
-                            ),
-
-                            obscureText: seePass,
+                            controller: phoneController,
+                            decoration: const InputDecoration(
+                                labelText: 'Phone Number'),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
+                                return 'Please enter your phone number';
                               }
                               return null;
                             },
@@ -142,25 +157,26 @@ class State_Account extends State<AccountPage> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 50, vertical: 20),
                       textStyle: const TextStyle(
                         fontSize: 20,
                       ),
                     ),
-
                     child: const Text('Save Changes'),
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         setState(() {
-
-                          name = nameController.text;
-                          email = emailController.text;
-                          password = passwordController.text;
-
+                          firstName = firstNameController.text;
+                          lastName = lastNameController.text;
+                          phone = phoneController.text;
                         });
 
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(const SnackBar(content: Text('Changes saved')));
+                        updateUser(userId, firstName, lastName, phone, daysLeft,
+                            isLightMode);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Changes saved')));
                       }
                     },
                   ),
