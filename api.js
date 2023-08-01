@@ -308,25 +308,21 @@ exports.setApp = function ( app, client )
 
       if (results.length > 0) {
 
-        //Create a random password
-        let randomPassword = (Math.random() + 1).toString(36).substring(5);
+        //Get the reset token.
+        const resetToken = jwt.sign({id: results[0].userId}, jwtKey);
 
-        //Hash the randomly generated password
-        var hashedPassword = crypto.pbkdf2Sync(randomPassword, password_salt, 1000, 64, `sha512`).toString(`hex`);
+        //Get the password reset url
+        const resetUrl = environment == 'Development' ? ("http://localhost:" + apiPort + "/api/verify_reset_password/" + resetToken) : ("http://cop4331-20-fcdfeeaee1d5.herokuapp.com/api/verify_reset_password/" + resetToken)
 
         //Send the email verification email.
         const info = await emailTransport.sendMail({
           from: '"Kitchen Pal" <kitchenpal.cop4331@gmail.com>', // sender address
           to: email, // list of receivers
-          subject: "Your Password Has Been Reset ✔", // Subject line
-          html: "<b>Your new password is: " + randomPassword + "</b>", // html body
+          subject: "Click to reset your password. ✔", // Subject line
+          html: "<b>Please click <a href='" + resetUrl + "'>HERE</a> to reset your password.</b>", // html body
         });
 
         console.log("Message sent: %s", info.messageId);
-
-
-        //Update the verified flag
-        await User.findOneAndUpdate({ email: email }, { password: hashedPassword });
 
         //Successful response with 200 status
         res.status(200).json({ error: '' });
@@ -334,6 +330,65 @@ exports.setApp = function ( app, client )
         // Unauthorized response with 401 status
         res.status(401).json({ error: 'Invalid Email.'});
       }
+    } catch (error) {
+      handleError(error, res)
+    }
+  });
+
+  //Verify email address
+  app.get('/api/verify_reset_password/:token', async (req, res, next) => {
+    try {
+
+      const resetToken = req.params.token;
+
+      // Input Validation
+      if (!resetToken) {
+        return res.status(400).json({ error: 'MISSING TOKEN.' });
+      }
+
+      jwt.verify(resetToken, jwtKey, async (err, userInfo) => {
+        if (err) {
+          console.error('Invalid token:', err);
+          return res.status(403).json({error: 'INVALID TOKEN'});
+        }
+
+        //Get the user from the email.
+        const results = await User.find({userId: userInfo.id});
+
+        let response = {
+          error: ''
+        };
+
+        if (results.length > 0) {
+
+          //Create a random password
+          let randomPassword = (Math.random() + 1).toString(36).substring(5);
+
+          //Hash the randomly generated password
+          var hashedPassword = crypto.pbkdf2Sync(randomPassword, password_salt, 1000, 64, `sha512`).toString(`hex`);
+
+          //Send the email verification email.
+          const info = await emailTransport.sendMail({
+            from: '"Kitchen Pal" <kitchenpal.cop4331@gmail.com>', // sender address
+            to: results[0].email, // list of receivers
+            subject: "Your Password Has Been Reset ✔", // Subject line
+            html: "<b>Your new password is: " + randomPassword + "</b>", // html body
+          });
+
+          console.log("Message sent: %s", info.messageId);
+
+
+          //Update the verified flag
+          await User.findOneAndUpdate({userId: userInfo.id}, {password: hashedPassword});
+
+          //Successful response with 200 status
+          res.redirect(302, "https://cop4331-20-fcdfeeaee1d5.herokuapp.com/");
+        } else {
+          // Unauthorized response with 401 status
+          res.status(401).json({error: 'Invalid Email.'});
+        }
+
+      });
     } catch (error) {
       handleError(error, res)
     }
