@@ -66,6 +66,7 @@ class _LoginPageState extends State<LoginPage> {
         });
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pop(context);
           Navigator.pushNamed(context, '/main');
         });
       } else {

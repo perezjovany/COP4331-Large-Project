@@ -303,6 +303,8 @@ class _AddToFridgeDialogState extends State<AddToFridgeDialog> {
           .createFridgeItem(fridgeItem);
 
       Navigator.of(context).pop(); // Close the dialog after adding the item
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
     } catch (e) {
       // Handle errors, if needed
       print(e.toString());

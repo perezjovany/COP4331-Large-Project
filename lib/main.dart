@@ -136,7 +136,7 @@ class _MainPageState extends State<MainPage> {
         var nextPage = res['nextPage'];
         var text = res['text'];
 
-        Navigator.push(
+        var result = await Navigator.push(
           _context!,
           MaterialPageRoute(
             builder: (context) => ParserResultsPage(
@@ -146,6 +146,9 @@ class _MainPageState extends State<MainPage> {
             ),
           ),
         );
+
+        // refresh the page
+        setState(() {});
 
         print(text); //TODO: FOR TESTING, REMOVE
       } else {
