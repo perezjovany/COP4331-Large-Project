@@ -67,8 +67,8 @@ class ParserResultsPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            NutrientsPage(responseObj: responseObj),
+                        builder: (context) => NutrientsPage(
+                            responseObj: responseObj, viewOnly: false),
                       ),
                     );
                   },
