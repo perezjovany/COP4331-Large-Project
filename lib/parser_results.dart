@@ -144,7 +144,7 @@ class NutritionHelper {
   }
 
   Future<Map<dynamic, dynamic>> nutrients(
-      BuildContext context, dynamic foodItem) async {
+    BuildContext context, dynamic foodItem) async {
     var path = await buildPath('api/nutrients');
     var url = Uri.parse(path);
     var token = await getToken();

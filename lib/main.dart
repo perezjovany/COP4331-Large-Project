@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_app/nutrients.dart';
 import 'package:flutter_app/parser_results.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -295,10 +296,6 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> _deleteFridgeItem(FridgeItem item) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
-    var userId = userData['userId'];
-
     var path = await buildPath('api/delete_fridge_item');
     var url = Uri.parse(path);
     var token = await getToken();
@@ -310,14 +307,44 @@ class _MainPageState extends State<MainPage> {
 
     try {
       var response = await http.delete(url, headers: headers, body: body);
-      print('Status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
       var res = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
         setState(() {
           _fridgeItems.remove(item);
         });
+      } else {
+        _showErrorDialog(res['error']);
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
+  }
+
+  Future<void> _getNutrition(FridgeItem item) async {
+    var path = await buildPath('api/nutrients');
+    var url = Uri.parse(path);
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
+
+    var body = jsonEncode({'ingredients': item.ingredients});
+
+    try {
+      var response = await http.post(url, headers: headers, body: body);
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        // ignore: use_build_context_synchronously
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                NutrientsPage(responseObj: res, viewOnly: true),
+          ),
+        );
       } else {
         _showErrorDialog(res['error']);
       }
@@ -497,13 +524,14 @@ class _MainPageState extends State<MainPage> {
                   onTap: () {
                     // TODO: Navigate to the nutrients page when tapped
                     print("Tapped! $itemId");
+                    _getNutrition(fridgeItem);
                   },
                   onEdit: () {
                     // TODO: Implement edit functionality
                     print("Edit Button!");
                   },
                   onDelete: () {
-                    // TODO: Implement delete functionality
+                    // TODO: Implement delete event functionality
                     print("Delete Button!");
                     _deleteFridgeItem(fridgeItem);
                   },
