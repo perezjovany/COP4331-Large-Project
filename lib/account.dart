@@ -54,6 +54,9 @@ class State_Account extends State<AccountPage> {
   User? _user;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  TextEditingController newPasswordController = TextEditingController();
+  TextEditingController confirmPasswordController = TextEditingController();
+
   Future<String> getToken() async {
     const storage = FlutterSecureStorage();
     String? token = await storage.read(key: 'auth_token');
@@ -102,7 +105,8 @@ class State_Account extends State<AccountPage> {
               email: userRes['email'],
               phone: userRes['phone'],
               isVerified: userRes['isVerified'],
-              daysLeft: userRes['daysLeft'] ?? 0, // Use 0 if daysLeft is null
+              daysLeft: userRes['daysLeft'] ?? 0,
+              // Use 0 if daysLeft is null
               isLightMode: userRes['isLightMode'] ??
                   false); // Use false if isLightMode is null
         });
@@ -155,10 +159,10 @@ class State_Account extends State<AccountPage> {
         title: Text('Account Settings'), // Updated to use AppBar
       ),
       body:
-          _user != null ? _buildUserForm(_user!) : CircularProgressIndicator(),
+      _user != null ? _buildUserForm(_user!) : CircularProgressIndicator(),
       bottomNavigationBar: const bottomBar(
         selectedIndex:
-            2, // Sets the selected index of the bottom navigation bar to 2
+        2, // Sets the selected index of the bottom navigation bar to 2
       ),
     );
   }
@@ -183,78 +187,193 @@ class State_Account extends State<AccountPage> {
     );
   }
 
-  Widget _buildUserForm(User user) {
-    return Form(
-      key: _formKey,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0), // Adding padding around the form
-        child: Column(
-          children: <Widget>[
-            TextFormField(
-              controller: user
-                  .firstNameController, // Updated to use firstNameController
-              decoration: const InputDecoration(
-                  labelText: 'First Name'), // Updated label
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your first name'; // Updated validation message
-                }
-                return null;
+  Future<void> _changePassword(String newPassword, String confirmPassword) async {
+    // Check if the new password and confirmation match
+    if (newPassword != confirmPassword) {
+      return;
+    }
+
+    var token = await getToken();
+
+    try {
+      var path = await buildPath('api/change_password');
+      var url = Uri.parse(path);
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      var body = jsonEncode({
+        'password': newPassword,
+      });
+
+      var response = await http.post(url, headers: headers, body: body);
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+    } catch (e) {
+
+    }
+  }
+
+  void _handleChangePasswordButtonPressed() {
+    // Show the password change dialog
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('Change Password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: newPasswordController,
+                decoration: InputDecoration(
+                  labelText: 'New Password',
+                  labelStyle: TextStyle(color: Colors.grey), // Grey text color for the label
+                  hintStyle: TextStyle(color: Colors.grey), // Grey hint text color
+                ),
+                obscureText: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the new password';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: confirmPasswordController,
+                decoration: InputDecoration(
+                  labelText: 'Confirm New Password',
+                  labelStyle: TextStyle(color: Colors.grey), // Grey text color for the label
+                  hintStyle: TextStyle(color: Colors.grey), // Grey hint text color
+                ),
+                obscureText: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please confirm the new password';
+                  }
+                  if (value != newPasswordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
               },
+              child: Text('Cancel'),
             ),
-            TextFormField(
-              controller:
-                  user.lastNameController, // Updated to use lastNameController
-              decoration: const InputDecoration(
-                  labelText: 'Last Name'), // Updated label
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your last name'; // Updated validation message
-                }
-                return null;
-              },
-            ),
-            TextFormField(
-              controller: user.phoneController,
-              decoration: const InputDecoration(
-                  labelText: 'Phone Number'), // Updated label
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your phone number';
-                }
-                return null;
-              },
-            ),
-            SizedBox(
-                height: 16), // Adding spacing between form fields and button
-            ElevatedButton(
+            TextButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
-                  setState(() {
-                    user.firstName = user.firstNameController
-                        .text; // Updated to use firstNameController text directly
-                    user.lastName = user.lastNameController
-                        .text; // Updated to use lastNameController text directly
-                    user.phone = user.phoneController.text;
-                  });
-                  _updateUser(user);
+                  _changePassword(newPasswordController.text, confirmPasswordController.text);
+                  Navigator.of(dialogContext).pop();
                 }
               },
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12), // Adding padding to the button
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                      8), // Adding rounded corners to the button
-                ),
-                primary: Colors.green,
-                onPrimary: Colors.white,
-                elevation: 4,
-              ),
-              child: Text('Save Changes'),
+              child: Text('Change Password'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildUserForm(User user) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: <Widget>[
+                TextFormField(
+                  controller: user.firstNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'First Name',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your first name';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: user.lastNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Last Name',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your last name';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: user.phoneController,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      setState(() {
+                        user.firstName = user.firstNameController.text;
+                        user.lastName = user.lastNameController.text;
+                        user.phone = user.phoneController.text;
+                      });
+                      _updateUser(user);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    primary: Colors.green,
+                    onPrimary: Colors.white,
+                    elevation: 4,
+                  ),
+                  child: Text('Save Changes'),
+                ),
+                SizedBox(height: 8), // Add spacing between the buttons
+                ElevatedButton(
+                  onPressed: _handleChangePasswordButtonPressed,
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    primary: Colors.blue,
+                    onPrimary: Colors.white,
+                    elevation: 4,
+                  ),
+                  child: Text('Change Password'),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
