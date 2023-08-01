@@ -1,5 +1,10 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_app/components/path.dart' show buildPath;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
 
 class NutrientsPage extends StatelessWidget {
   final Map<dynamic, dynamic> responseObj;
@@ -57,6 +62,45 @@ class NutrientsPage extends StatelessWidget {
 
   String getModifiedLabel(String label) {
     return nutrientNameMap[label] ?? label;
+  }
+
+  Future<String> getToken() async {
+    const storage = FlutterSecureStorage();
+    String? token = await storage.read(key: 'auth_token');
+    return token ?? '';
+  }
+
+  Future<void> createFridgeItem(FridgeItem fridgeItem) async {
+    var path = await buildPath('api/create_fridge_item');
+    var url = Uri.parse(path);
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    try {
+      var response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(fridgeItem.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        // Handle the successful response, if needed
+        var responseBody = jsonDecode(response.body);
+        print(responseBody); // Use the responseBody as needed
+      } else {
+        // Handle other status codes
+        var errorMessage = response.body;
+        print(errorMessage);
+        throw errorMessage; // Throw an error to be handled by the caller
+      }
+    } catch (e) {
+      // Handle errors
+      print(e.toString());
+      rethrow; // Throw an error to be handled by the caller
+    }
   }
 
   @override
@@ -185,7 +229,7 @@ class NutrientsPage extends StatelessWidget {
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
-                    return AddToFridgeDialog(foodName: foodData['food']);
+                    return AddToFridgeDialog(responseObj: responseObj);
                   },
                 );
               },
@@ -197,11 +241,11 @@ class NutrientsPage extends StatelessWidget {
 }
 
 class AddToFridgeDialog extends StatefulWidget {
-  final String foodName;
+  final Map<dynamic, dynamic> responseObj;
   final bool viewOnly;
 
   const AddToFridgeDialog(
-      {Key? key, required this.foodName, this.viewOnly = false})
+      {Key? key, required this.responseObj, this.viewOnly = false})
       : super(key: key);
 
   @override
@@ -228,25 +272,68 @@ class _AddToFridgeDialogState extends State<AddToFridgeDialog> {
     }
   }
 
+  Future<void> addToFridge() async {
+    try {
+      // Fetch the userId from SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
+      var userId = userData['userId'];
+
+      // Prepare the FridgeItem object
+      var fridgeItem = FridgeItem(
+        userId: userId,
+        expirationDate: DateFormat('yyyy-MM-dd').format(selectedDate),
+        foodLabel: widget.responseObj['ingredients'][0]['parsed'][0]['food'],
+        totalCalories: widget.responseObj['calories'].round(),
+        measure: widget.responseObj['ingredients'][0]['parsed'][0]['measure'],
+        ingredients: [
+          {
+            "quantity": quantity,
+            "measureURI": widget.responseObj['ingredients'][0]['parsed'][0]
+                ['measureURI'],
+            "qualifiers": [],
+            "foodId": widget.responseObj['ingredients'][0]['parsed'][0]
+                ['foodId']
+          },
+        ],
+      );
+
+      // Call the createFridgeItem method to add the item to the fridge
+      await NutrientsPage(responseObj: widget.responseObj)
+          .createFridgeItem(fridgeItem);
+
+      Navigator.of(context).pop(); // Close the dialog after adding the item
+    } catch (e) {
+      // Handle errors, if needed
+      print(e.toString());
+      // Show an error message to the user, if needed
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    String foodName = widget.responseObj['ingredients'][0]['parsed'][0]['food'];
     return AlertDialog(
-      title: Text('Add ${widget.foodName} to Fridge'),
+      title: Text('Add $foodName to Fridge'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
               'Expiration Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}'),
-          ElevatedButton(
-            onPressed: () => _selectDate(context),
-            child: const Text('Select Date'),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.center,
+            child: ElevatedButton(
+              onPressed: () => _selectDate(context),
+              child: const Text('Select Date'),
+            ),
           ),
           const SizedBox(height: 16),
           const Text('Quantity:'),
           TextFormField(
             controller: quantityController,
-            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (value) {
               setState(() {
                 quantity = double.tryParse(value) ?? 1.0;
@@ -257,10 +344,7 @@ class _AddToFridgeDialogState extends State<AddToFridgeDialog> {
       ),
       actions: [
         ElevatedButton(
-          onPressed: () {
-            // TODO: Add the food item to the fridge with selectedDate and quantity
-            Navigator.of(context).pop();
-          },
+          onPressed: addToFridge,
           child: const Text('Add to Fridge'),
         ),
         TextButton(
@@ -271,5 +355,34 @@ class _AddToFridgeDialogState extends State<AddToFridgeDialog> {
         ),
       ],
     );
+  }
+}
+
+class FridgeItem {
+  final int userId;
+  final String expirationDate;
+  final String foodLabel;
+  final int totalCalories;
+  final String measure;
+  final List<Map<String, dynamic>> ingredients;
+
+  FridgeItem({
+    required this.userId,
+    required this.expirationDate,
+    required this.foodLabel,
+    required this.totalCalories,
+    required this.measure,
+    required this.ingredients,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'expirationDate': expirationDate,
+      'foodLabel': foodLabel,
+      'totalCalories': totalCalories,
+      'measure': measure,
+      'ingredients': ingredients,
+    };
   }
 }

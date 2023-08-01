@@ -175,25 +175,12 @@ class NutritionHelper {
       var res = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        res['ingredients'][0]['parsed'][0]['food'] =
+            formatFoodName(res['ingredients'][0]['parsed'][0]['food']);
         // Handle the response
         var nutrientData = res;
-        var responseObj = {
-          "uri": nutrientData['uri'],
-          "calories": nutrientData['calories'],
-          "totalWeight": nutrientData['totalWeight'],
-          "dietLabels": nutrientData['dietLabels'],
-          "healthLabels": nutrientData['healthLabels'],
-          "cautions": nutrientData['cautions'],
-          "totalNutrients": nutrientData['totalNutrients'],
-          "totalDaily": nutrientData['totalDaily'],
-          "ingredients": nutrientData['ingredients'].map((ingredientData) {
-            return {"parsed": ingredientData['parsed']};
-          }).toList(),
-        };
 
-        // Successful response
-        // print(responseObj); // Use the responseObj as needed
-        return responseObj; // Return the responseObj
+        return nutrientData; // Return the responseObj
       } else {
         // Handle other status codes
         var errorMessage = res['error'];
@@ -204,6 +191,14 @@ class NutritionHelper {
       _showErrorDialog(context, e.toString());
       throw e; // Throw an error to be handled by the caller
     }
+  }
+
+  String formatFoodName(String foodName) {
+    List<String> words = foodName.split(' ');
+    words = words
+        .map((word) => word.substring(0, 1).toUpperCase() + word.substring(1))
+        .toList();
+    return words.join(' ');
   }
 
   Future<void> _showErrorDialog(
