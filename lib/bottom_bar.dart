@@ -6,7 +6,8 @@ class bottomBar extends StatelessWidget {
   final int? selectedIndex;
 
   // Constructor
-  const bottomBar({super.key,
+  const bottomBar({
+    super.key,
     this.selectedIndex,
   });
 
@@ -16,7 +17,8 @@ class bottomBar extends StatelessWidget {
       backgroundColor: Colors.green, // Background color for the navigation bar
 
       selectedItemColor: Colors.white, // Color for the selected item
-      unselectedItemColor: Colors.white.withOpacity(0.6), // Color for the unselected item
+      unselectedItemColor:
+          Colors.white.withOpacity(0.6), // Color for the unselected item
 
       selectedFontSize: 18, // Font size for the selected item
       unselectedFontSize: 14, // Font size for the unselected item
@@ -26,6 +28,7 @@ class bottomBar extends StatelessWidget {
 
       onTap: (index) {
         // Handling navigation on tap
+        Navigator.of(context).pop();
         switch (index) {
           case 0:
             Navigator.pushNamed(context, '/main');
@@ -53,7 +56,6 @@ class bottomBar extends StatelessWidget {
           icon: Icon(Icons.calendar_today), // Icon for the item
           label: 'Calendar', // Label for the item
         ),
-
 
         //List section
         BottomNavigationBarItem(
