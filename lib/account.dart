@@ -45,7 +45,7 @@ class User {
 }
 
 class AccountPage extends StatefulWidget {
-  const AccountPage({super.key});
+  const AccountPage({Key? key}) : super(key: key);
 
   @override
   State_Account createState() => State_Account();
@@ -152,7 +152,9 @@ class State_Account extends State<AccountPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const topBar(title: 'Account Settings'), // Page Title
+      appBar: AppBar(
+        title: Text('Account Settings'), // Updated to use AppBar
+      ),
       body:
           _user != null ? _buildUserForm(_user!) : CircularProgressIndicator(),
       bottomNavigationBar: const bottomBar(
@@ -167,14 +169,14 @@ class State_Account extends State<AccountPage> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('Error'),
+          title: Text('Error'),
           content: Text(errorMessage),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('OK'),
+              child: Text('OK'),
             ),
           ],
         );
@@ -185,58 +187,79 @@ class State_Account extends State<AccountPage> {
   Widget _buildUserForm(User user) {
     return Form(
       key: _formKey,
-      child: Column(
-        children: <Widget>[
-          TextFormField(
-            controller: user.nameController,
-            decoration: const InputDecoration(labelText: 'Full Name'),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your full name';
-              }
-              return null;
-            },
-          ),
-          TextFormField(
-            controller: user.emailController,
-            decoration: const InputDecoration(labelText: 'Email'),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your email';
-              }
-              return null;
-            },
-          ),
-          TextFormField(
-            controller: user.phoneController,
-            decoration: const InputDecoration(labelText: 'Phone'),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your phone number';
-              }
-              return null;
-            },
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                setState(() {
-                  user.firstName = user.nameController.text.split(' ')[0];
-                  user.lastName = user.nameController.text.split(' ')[1];
-                  user.email = user.emailController.text;
-                  user.phone = user.phoneController.text;
-                });
-                _updateUser(user);
-              }
-            },
-            child: const Text('Save Changes'),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(16.0), // Adding padding around the form
+        child: Column(
+          children: <Widget>[
+            TextFormField(
+              controller: user.nameController,
+              decoration: const InputDecoration(labelText: 'Full Name'),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your full name';
+                }
+                return null;
+              },
+            ),
+            TextFormField(
+              controller: user.emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your email';
+                }
+                return null;
+              },
+            ),
+            TextFormField(
+              controller: user.phoneController,
+              decoration: const InputDecoration(labelText: 'Phone'),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your phone number';
+                }
+                return null;
+              },
+            ),
+            SizedBox(
+                height: 16), // Adding spacing between form fields and button
+            ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  setState(() {
+                    user.firstName = user.nameController.text.split(' ')[0];
+                    user.lastName = user.nameController.text.split(' ')[1];
+                    user.email = user.emailController.text;
+                    user.phone = user.phoneController.text;
+                  });
+                  _updateUser(user);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12), // Adding padding to the button
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                      8), // Adding rounded corners to the button
+                ),
+                primary:
+                    Colors.green, 
+                onPrimary: Colors.white,
+                elevation: 4, 
+                
+              ),
+              child: Text('Save Changes'),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 void main() {
-  runApp(const AccountPage());
+  runApp(MaterialApp(
+    home: AccountPage(),
+  ));
 }
