@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_app/components/path.dart' show buildPath;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,8 +11,7 @@ class NutrientsPage extends StatelessWidget {
   final Map<dynamic, dynamic> responseObj;
   final bool viewOnly;
 
-  NutrientsPage({Key? key, required this.responseObj, this.viewOnly = false})
-      : super(key: key);
+  NutrientsPage({Key? key, required this.responseObj, this.viewOnly = false}) : super(key: key);
 
   // Mapping of nutrient labels to their corresponding user-friendly names
   final Map<String, String> nutrientNameMap = {
@@ -38,13 +38,7 @@ class NutrientsPage extends StatelessWidget {
   };
 
   // Set of nutrient labels to be bolded
-  final Set<String> boldedNutrients = {
-    "Total Fat",
-    "Total Carbohydrate",
-    "Sodium",
-    "Protein",
-    "Cholesterol"
-  };
+  final Set<String> boldedNutrients = {"Total Fat", "Total Carbohydrate", "Sodium", "Protein", "Cholesterol"};
 
   // Set of nutrient labels to be indented
   final Set<String> indentedNutrients = {
@@ -70,6 +64,42 @@ class NutrientsPage extends StatelessWidget {
     return token ?? '';
   }
 
+  Future<void> createEvent(Event event) async {
+    var path = await buildPath('api/create_event');
+    var url = Uri.parse(path);
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    try {
+      var response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(event.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        // Handle the successful response, if needed
+        var responseBody = jsonDecode(response.body);
+        if (kDebugMode) {
+          print(responseBody);
+        }
+      } else {
+        // Handle other status codes
+        var errorMessage = response.body;
+        throw errorMessage; // Throw an error to be handled by the caller
+      }
+    } catch (e) {
+      // Handle errors
+      if (kDebugMode) {
+        print(e.toString());
+      }
+      rethrow; // Throw an error to be handled by the caller
+    }
+  }
+
   Future<void> createFridgeItem(FridgeItem fridgeItem) async {
     var path = await buildPath('api/create_fridge_item');
     var url = Uri.parse(path);
@@ -89,16 +119,28 @@ class NutrientsPage extends StatelessWidget {
       if (response.statusCode == 200) {
         // Handle the successful response, if needed
         var responseBody = jsonDecode(response.body);
-        print(responseBody); // Use the responseBody as needed
+
+        var event = Event(
+            userId: fridgeItem.userId,
+            fridgeItemId: responseBody["_id"],
+            expirationDate: fridgeItem.expirationDate,
+            foodLabel: fridgeItem.foodLabel);
+
+        createEvent(event);
+
+        if (kDebugMode) {
+          print(responseBody);
+        }
       } else {
         // Handle other status codes
         var errorMessage = response.body;
-        print(errorMessage);
         throw errorMessage; // Throw an error to be handled by the caller
       }
     } catch (e) {
       // Handle errors
-      print(e.toString());
+      if (kDebugMode) {
+        print(e.toString());
+      }
       rethrow; // Throw an error to be handled by the caller
     }
   }
@@ -129,14 +171,12 @@ class NutrientsPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Serving Size: ${foodData['quantity']} ${foodData['measure']}',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Calories: ${responseObj['calories'].round()} calories',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     'Total Weight: ${responseObj['totalWeight'].round()} g',
@@ -164,47 +204,35 @@ class NutrientsPage extends StatelessWidget {
                   ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    separatorBuilder: (context, index) =>
-                        const Divider(color: Colors.grey),
+                    separatorBuilder: (context, index) => const Divider(color: Colors.grey),
                     itemCount: responseObj['totalNutrients'].length,
                     itemBuilder: (context, index) {
-                      var nutrient =
-                          responseObj['totalNutrients'].keys.elementAt(index);
-                      var nutrientData =
-                          responseObj['totalNutrients'][nutrient];
+                      var nutrient = responseObj['totalNutrients'].keys.elementAt(index);
+                      var nutrientData = responseObj['totalNutrients'][nutrient];
                       var dailyData = responseObj['totalDaily'][nutrient];
 
-                      var nutrientLabel =
-                          getModifiedLabel(nutrientData['label']);
+                      var nutrientLabel = getModifiedLabel(nutrientData['label']);
 
-                      var dailyValueText = dailyData != null
-                          ? '${dailyData['quantity'].round()} ${dailyData['unit']}'
-                          : '';
+                      var dailyValueText =
+                          dailyData != null ? '${dailyData['quantity'].round()} ${dailyData['unit']}' : '';
 
                       // Check if the nutrient label should be bolded or indented
-                      final bool isBolded =
-                          boldedNutrients.contains(nutrientLabel);
-                      final bool isIndented =
-                          indentedNutrients.contains(nutrientLabel);
+                      final bool isBolded = boldedNutrients.contains(nutrientLabel);
+                      final bool isIndented = indentedNutrients.contains(nutrientLabel);
 
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Padding(
                             padding: EdgeInsets.only(
-                              left: isIndented
-                                  ? 16
-                                  : 0, // Apply left padding if indented
-                              right:
-                                  8, // Add right spacing between nutrient label and value
+                              left: isIndented ? 16 : 0, // Apply left padding if indented
+                              right: 8, // Add right spacing between nutrient label and value
                             ),
                             child: Text(
                               '$nutrientLabel: ${nutrientData['quantity'].round()} ${nutrientData['unit']}',
                               style: TextStyle(
                                 fontSize: 18,
-                                fontWeight: isBolded
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
+                                fontWeight: isBolded ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
                           ),
@@ -244,9 +272,7 @@ class AddToFridgeDialog extends StatefulWidget {
   final Map<dynamic, dynamic> responseObj;
   final bool viewOnly;
 
-  const AddToFridgeDialog(
-      {Key? key, required this.responseObj, this.viewOnly = false})
-      : super(key: key);
+  const AddToFridgeDialog({Key? key, required this.responseObj, this.viewOnly = false}) : super(key: key);
 
   @override
   _AddToFridgeDialogState createState() => _AddToFridgeDialogState();
@@ -289,18 +315,15 @@ class _AddToFridgeDialogState extends State<AddToFridgeDialog> {
         ingredients: [
           {
             "quantity": quantity,
-            "measureURI": widget.responseObj['ingredients'][0]['parsed'][0]
-                ['measureURI'],
+            "measureURI": widget.responseObj['ingredients'][0]['parsed'][0]['measureURI'],
             "qualifiers": [],
-            "foodId": widget.responseObj['ingredients'][0]['parsed'][0]
-                ['foodId']
+            "foodId": widget.responseObj['ingredients'][0]['parsed'][0]['foodId']
           },
         ],
       );
 
       // Call the createFridgeItem method to add the item to the fridge
-      await NutrientsPage(responseObj: widget.responseObj)
-          .createFridgeItem(fridgeItem);
+      await NutrientsPage(responseObj: widget.responseObj).createFridgeItem(fridgeItem);
 
       Navigator.of(context).pop(); // Close the dialog after adding the item
       Navigator.of(context).pop();
@@ -323,8 +346,7 @@ class _AddToFridgeDialogState extends State<AddToFridgeDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-              'Expiration Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}'),
+          Text('Expiration Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}'),
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.center,
@@ -387,6 +409,29 @@ class FridgeItem {
       'totalCalories': totalCalories,
       'measure': measure,
       'ingredients': ingredients,
+    };
+  }
+}
+
+class Event {
+  final int userId;
+  final String fridgeItemId;
+  final String expirationDate;
+  final String foodLabel;
+
+  Event({
+    required this.userId,
+    required this.fridgeItemId,
+    required this.expirationDate,
+    required this.foodLabel,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'fridgeItemId': fridgeItemId,
+      'expirationDate': expirationDate,
+      'foodLabel': foodLabel,
     };
   }
 }

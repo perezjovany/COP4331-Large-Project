@@ -1,24 +1,47 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_app/components/path.dart' show buildPath;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
 import 'bottom_bar.dart';
 import 'top_bar.dart';
+import 'dart:convert';
 
 // Data model for Calendar Events
 class CalendarEvent {
-  final String title;
+  final String eventId;
+  final int userId;
+  final String fridgeItemId;
   final DateTime date;
+  final String title;
 
-  CalendarEvent({required this.title, required this.date});
+  CalendarEvent(
+      {required this.eventId,
+      required this.userId,
+      required this.fridgeItemId,
+      required this.date,
+      required this.title});
+
+  factory CalendarEvent.fromJson(Map<String, dynamic> json) {
+    return CalendarEvent(
+      eventId: json['_id'],
+      userId: json['userId'],
+      fridgeItemId: json['fridgeItemId'],
+      date: DateTime.parse(json['expirationDate']),
+      title: json['eventLabel'],
+    );
+  }
 }
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
 
   @override
-  State_Calendar createState() => State_Calendar();
+  StateCalendar createState() => StateCalendar();
 }
 
-class State_Calendar extends State<CalendarPage> {
+class StateCalendar extends State<CalendarPage> {
   // Default selected index is set to 1
   final int _currentIndex = 1;
 
@@ -34,14 +57,66 @@ class State_Calendar extends State<CalendarPage> {
   @override
   void initState() {
     super.initState();
+    _fetchEvents();
+  }
 
-    // PLACEHOLDER events, please delete once connected to backend
-    _events = [
-      CalendarEvent(title: 'Chicken A expired', date: DateTime(2023, 7, 15)),
-      CalendarEvent(title: 'Chicken B expired', date: DateTime(2023, 7, 18)),
-      CalendarEvent(title: 'Milk expired', date: DateTime(2023, 7, 21)),
-      CalendarEvent(title: 'Yogurt expired', date: DateTime(2023, 7, 21)),
-    ];
+  Future<String> getToken() async {
+    const storage = FlutterSecureStorage();
+    String? token = await storage.read(key: 'auth_token');
+    return token ?? '';
+  }
+
+  Future<void> _showErrorDialog(String errorMessage) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Error'),
+          content: Text(errorMessage),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _fetchEvents() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
+    var userId = userData['userId'];
+
+    try {
+      var path = await buildPath('api/get_all_events/$userId');
+      var url = Uri.parse(path);
+      var token = await getToken();
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      var response = await http.get(url, headers: headers);
+      if (response.statusCode == 200) {
+        List<CalendarEvent> events = [];
+
+        // Parse the JSON data and create a list of CalendarEvent objects
+        List<dynamic> jsonData = jsonDecode(response.body);
+        events = jsonData.map((data) => CalendarEvent.fromJson(data)).toList();
+
+        setState(() {
+          _events = events;
+        });
+      } else {
+        _showErrorDialog('Failed to fetch fridge item IDs.');
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
   }
 
   @override
@@ -50,6 +125,7 @@ class State_Calendar extends State<CalendarPage> {
       appBar: const topBar(title: 'Calendar'), // Page Title
       body: SfCalendar(
         view: _calendarView,
+        timeZone: 'US Eastern Standard Time',
         initialSelectedDate: _selectedDate,
         dataSource: EventDataSource(_events),
         onTap: (CalendarTapDetails details) {
@@ -65,7 +141,8 @@ class State_Calendar extends State<CalendarPage> {
 
   // Dialog pop-up section
   void _showEventDetails(DateTime date) {
-    final events = _events.where((event) => event.date == date).toList();
+    var day = date.toLocal().day;
+    final events = _events.where((event) => event.date.day == day).toList();
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -82,7 +159,6 @@ class State_Calendar extends State<CalendarPage> {
                     style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                   ),
                 ),
-
                 ListView.builder(
                   shrinkWrap: true,
                   itemCount: events.length,
@@ -93,7 +169,6 @@ class State_Calendar extends State<CalendarPage> {
                     );
                   },
                 ),
-
                 const SizedBox(height: 16.0),
                 TextButton(
                   child: const Text('Close'),
@@ -101,7 +176,6 @@ class State_Calendar extends State<CalendarPage> {
                     Navigator.of(context).pop();
                   },
                 ),
-
                 const SizedBox(height: 16.0),
               ],
             ),
@@ -119,8 +193,10 @@ class EventDataSource extends CalendarDataSource {
 
   Appointment createAppointment(CalendarEvent event) {
     return Appointment(
+      startTimeZone: "Eastern Standard Time",
+      endTimeZone: "Eastern Standard Time",
       startTime: event.date,
-      endTime: event.date.add(const Duration(hours: 1)),
+      endTime: event.date.add(const Duration(days: 0)),
       subject: event.title,
     );
   }

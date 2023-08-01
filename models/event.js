@@ -9,7 +9,7 @@ const EventSchema = new Schema({
     // Description: The unique identifier for the user associated with the event (required)
   },
   fridgeItemId: {
-    type: Number,
+    type: String,
     required: true,
     // Description: The identifier for the food item associated with the event (required)
   },

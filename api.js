@@ -1045,7 +1045,7 @@ exports.setApp = function (app, client) {
 			const savedEvent = await newEvent.save();
 
 			// Successful response with 200 status and the eventId
-			res.status(200).json({ eventId: savedEvent._id.toString() });
+			return res.status(200).json({ eventId: savedEvent._id.toString() });
 		} catch (error) {
 			handleError(error, res);
 		}
@@ -1086,12 +1086,12 @@ exports.setApp = function (app, client) {
 
 	// Endpoint URL: /api/get_event
 	// HTTP Method: GET
-	app.get("/api/get_event", authenticateToken, async (req, res, next) => {
+	app.get("/api/get_event/:eventId", authenticateToken, async (req, res, next) => {
 		try {
 			// incoming: eventId
 			// outgoing: event
 
-			const { eventId } = req.body;
+			const eventId = req.params.eventId;
 
 			if (!eventId) {
 				return res.status(400).json({ error: "Missing required fields" });
@@ -1111,12 +1111,12 @@ exports.setApp = function (app, client) {
 
 	// Endpoint URL: /api/get_all_events
 	// HTTP Method: GET
-	app.get("/api/get_all_events", authenticateToken, async (req, res, next) => {
+	app.get("/api/get_all_events/:userId", authenticateToken, async (req, res, next) => {
 		try {
 			// incoming: userId
 			// outgoing: events
 
-			const { userId } = req.body;
+			const userId = req.params.userId;
 
 			if (!userId) {
 				return res.status(400).json({ error: "Missing required fields" });
