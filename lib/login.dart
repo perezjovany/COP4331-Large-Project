@@ -21,6 +21,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController loginNameController = TextEditingController();
   final TextEditingController loginPasswordController = TextEditingController();
+  final TextEditingController _passwordResetEmailController = TextEditingController();
   bool _obscureText = true;
   String message = '';
   bool seePass = true;
@@ -97,6 +98,64 @@ class _LoginPageState extends State<LoginPage> {
         );
       },
     );
+  }
+
+  Future<void> _showPasswordResetPopup() async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Forgot your password?'),
+          content: TextField(
+            controller: _passwordResetEmailController,
+            decoration: InputDecoration(
+              hintText: "Enter your email",
+              hintStyle: TextStyle(color: Colors.grey), // Set the text color here
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Implement the logic to send the password reset request
+                _sendPasswordResetRequest();
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Reset Password'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _sendPasswordResetRequest() async {
+    var path = await buildPath('api/reset_password');
+    var url = Uri.parse(path);
+    var headers = {'Content-Type': 'application/json'};
+    var body = jsonEncode({
+      'email': _passwordResetEmailController.text,
+    });
+
+    try {
+      var response = await http.post(url, headers: headers, body: body);
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        // Password reset request was successful
+        // Show a success message or do any necessary handling
+      } else {
+        // Show an error message
+        _showErrorDialog(res['error']);
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
   }
 
   void _togglePasswordVisibility() {
@@ -194,7 +253,9 @@ class _LoginPageState extends State<LoginPage> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {}, // Need to add functionality here
+                          onPressed: () {
+                            _showPasswordResetPopup(); // Show the password reset popup
+                          },
                           child: const Text("Forgot Password?", style: TextStyle(color: Colors.white)),
                         ),
                       ),
