@@ -308,25 +308,21 @@ exports.setApp = function ( app, client )
 
       if (results.length > 0) {
 
-        //Create a random password
-        let randomPassword = (Math.random() + 1).toString(36).substring(5);
+        //Get the reset token.
+        const resetToken = jwt.sign({id: results[0].userId}, jwtKey);
 
-        //Hash the randomly generated password
-        var hashedPassword = crypto.pbkdf2Sync(randomPassword, password_salt, 1000, 64, `sha512`).toString(`hex`);
+        //Get the password reset url
+        const resetUrl = environment == 'Development' ? ("http://localhost:" + apiPort + "/api/verify_reset_password/" + resetToken) : ("http://cop4331-20-fcdfeeaee1d5.herokuapp.com/api/verify_reset_password/" + resetToken)
 
         //Send the email verification email.
         const info = await emailTransport.sendMail({
           from: '"Kitchen Pal" <kitchenpal.cop4331@gmail.com>', // sender address
           to: email, // list of receivers
-          subject: "Your Password Has Been Reset ✔", // Subject line
-          html: "<b>Your new password is: " + randomPassword + "</b>", // html body
+          subject: "Click to reset your password. ✔", // Subject line
+          html: "<b>Please click <a href='" + resetUrl + "'>HERE</a> to reset your password.</b>", // html body
         });
 
         console.log("Message sent: %s", info.messageId);
-
-
-        //Update the verified flag
-        await User.findOneAndUpdate({ email: email }, { password: hashedPassword });
 
         //Successful response with 200 status
         res.status(200).json({ error: '' });
@@ -334,6 +330,65 @@ exports.setApp = function ( app, client )
         // Unauthorized response with 401 status
         res.status(401).json({ error: 'Invalid Email.'});
       }
+    } catch (error) {
+      handleError(error, res)
+    }
+  });
+
+  //Verify email address
+  app.get('/api/verify_reset_password/:token', async (req, res, next) => {
+    try {
+
+      const resetToken = req.params.token;
+
+      // Input Validation
+      if (!resetToken) {
+        return res.status(400).json({ error: 'MISSING TOKEN.' });
+      }
+
+      jwt.verify(resetToken, jwtKey, async (err, userInfo) => {
+        if (err) {
+          console.error('Invalid token:', err);
+          return res.status(403).json({error: 'INVALID TOKEN'});
+        }
+
+        //Get the user from the email.
+        const results = await User.find({userId: userInfo.id});
+
+        let response = {
+          error: ''
+        };
+
+        if (results.length > 0) {
+
+          //Create a random password
+          let randomPassword = (Math.random() + 1).toString(36).substring(5);
+
+          //Hash the randomly generated password
+          var hashedPassword = crypto.pbkdf2Sync(randomPassword, password_salt, 1000, 64, `sha512`).toString(`hex`);
+
+          //Send the email verification email.
+          const info = await emailTransport.sendMail({
+            from: '"Kitchen Pal" <kitchenpal.cop4331@gmail.com>', // sender address
+            to: results[0].email, // list of receivers
+            subject: "Your Password Has Been Reset ✔", // Subject line
+            html: "<b>Your new password is: " + randomPassword + "</b>", // html body
+          });
+
+          console.log("Message sent: %s", info.messageId);
+
+
+          //Update the verified flag
+          await User.findOneAndUpdate({userId: userInfo.id}, {password: hashedPassword});
+
+          //Successful response with 200 status
+          res.redirect(302, "https://cop4331-20-fcdfeeaee1d5.herokuapp.com/");
+        } else {
+          // Unauthorized response with 401 status
+          res.status(401).json({error: 'Invalid Email.'});
+        }
+
+      });
     } catch (error) {
       handleError(error, res)
     }
@@ -693,7 +748,7 @@ exports.setApp = function ( app, client )
   app.post('/api/create_fridge_item', authenticateToken, async (req, res, next) => {
     try {
       // incoming: userid, expirationDate, foodLabel, totalCalories, measure, ingredient
-      // outgoing: error
+      // outgoing: _id, error
 
       const { userId, expirationDate, foodLabel, totalCalories, measure, ingredients } = req.body;
 
@@ -711,10 +766,10 @@ exports.setApp = function ( app, client )
         ingredients: ingredients
       });
 
-      await newFridgeItem.save();
+      const savedFridgeItem = await newFridgeItem.save();
 
-      // Successful response with 200 status
-      res.status(200).json({ error: '' });
+      // Successful response with 200 status and _id field in the response
+      res.status(200).json({ _id: savedFridgeItem._id, error: '' });
     } catch (error) {
       handleError(error, res);
     }
@@ -724,18 +779,18 @@ exports.setApp = function ( app, client )
   // HTTP Method: PUT
   app.put('/api/update_fridge_item', authenticateToken, async (req, res, next) => {
     try {
-      // incoming: fridgeItemId, experationDate, foodLabel, totalCalories, measure, ingredients
-      // outgoing: error
-  
+      // incoming: fridgeItemId, expirationDate, foodLabel, totalCalories, measure, ingredients
+      // outgoing: fridgeItem
+
       const { fridgeItemId, expirationDate, foodLabel, totalCalories, measure, ingredients } = req.body;
-  
+
       // Input Validation
       if (!fridgeItemId || !expirationDate || !foodLabel || !totalCalories || !measure || !ingredients) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-  
+
       const updatedFridgeItem = await FridgeItem.findOneAndUpdate(
-        { fridgeItemId: fridgeItemId },
+        { _id: fridgeItemId }, // Use "_id" instead of "fridgeItemId"
         {
           expirationDate: expirationDate,
           foodLabel: foodLabel,
@@ -745,12 +800,13 @@ exports.setApp = function ( app, client )
         },
         { new: true } // Returns the updated item
       );
-  
+
       if (!updatedFridgeItem) {
         return res.status(404).json({ error: 'Fridge item not found' });
       }
-  
-      res.status(200).json({ error: '' });
+
+      // Return the updated fridgeItem object directly without a wrapper object
+      res.status(200).json(updatedFridgeItem);
     } catch (error) {
       handleError(error, res);
     }
@@ -758,24 +814,25 @@ exports.setApp = function ( app, client )
   
   // Endpoint URL: /api/get_fridge_item
   // HTTP Method: GET
-  app.get('/api/get_fridge_item', authenticateToken, async (req, res, next) => {
+  app.get('/api/get_fridge_item/:fridgeItemId', authenticateToken, async (req, res, next) => {
     try {
       // incoming: fridgeItemId
       // outgoing: fridgeItem
-  
-      const { fridgeItemId } = req.body;
-  
+
+      const fridgeItemId = req.params.fridgeItemId;
+
       if (!fridgeItemId) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-  
-      const fridgeItem = await FridgeItem.findOne({ fridgeItemId: fridgeItemId });
-  
+
+      const fridgeItem = await FridgeItem.findOne({ _id: fridgeItemId });
+
       if (!fridgeItem) {
         return res.status(404).json({ error: 'Fridge item not found' });
       }
-  
-      res.status(200).json({ fridgeItem });
+
+      // Return the fridgeItem object directly without a wrapper object
+      res.status(200).json(fridgeItem);
     } catch (error) {
       handleError(error, res);
     }
@@ -783,27 +840,24 @@ exports.setApp = function ( app, client )
 
   // Endpoint URL: /api/get_all_fridge_items
   // HTTP Method: GET
-  app.get('/api/get_all_fridge_items', authenticateToken, async (req, res, next) => {
+  app.get('/api/get_all_fridge_items/:userId', authenticateToken, async (req, res, next) => {
     try {
       // incoming: userId
-      // outgoing: fridgeItemIds
+      // outgoing: fridgeItems
 
-      const { userId } = req.body;
+      const userId = req.params.userId;
 
       if (!userId) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      const fridgeItems = await FridgeItem.find({ userId: userId }, 'fridgeItemId');
+      const fridgeItems = await FridgeItem.find({ userId: userId }, "_id");
 
       if (!fridgeItems) {
         return res.status(404).json({ error: 'No fridge items found for the given user' });
       }
 
-      // Extracting fridgeItemId from each fridgeItem
-      const fridgeItemIds = fridgeItems.map(item => item.fridgeItemId);
-
-      res.status(200).json(fridgeItemIds);
+      res.status(200).json(fridgeItems);
     } catch (error) {
       handleError(error, res);
     }
@@ -815,19 +869,20 @@ exports.setApp = function ( app, client )
     try {
       // incoming: fridgeItemId
       // outgoing: error
-
+  
       const { fridgeItemId } = req.body;
-
+  
       if (!fridgeItemId) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
-
-      const deletedFridgeItem = await FridgeItem.findOneAndDelete({ fridgeItemId: fridgeItemId });
-
+  
+      // Use "_id" instead of "fridgeItemId" in the query
+      const deletedFridgeItem = await FridgeItem.findOneAndDelete({ _id: fridgeItemId });
+  
       if (!deletedFridgeItem) {
         return res.status(404).json({ error: 'Fridge item not found' });
       }
-
+  
       res.status(200).json({ error: '' });
     } catch (error) {
       handleError(error, res);
@@ -974,12 +1029,12 @@ exports.setApp = function ( app, client )
 
   // Endpoint URL: /api/get_user
   // HTTP Method: GET
-  app.get('/api/get_user', authenticateToken, async (req, res, next) => {
+  app.get('/api/get_user/:userId', authenticateToken, async (req, res, next) => {
     try {
       // incoming: userId
       // outgoing: user
   
-      const { userId } = req.body;
+      const userId = req.params.userId;
   
       if (!userId) {
         return res.status(400).json({ error: 'Missing required field' });

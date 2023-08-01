@@ -1,8 +1,10 @@
 //======= Import Statements =======
 
 import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_app/parser_results.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
 import 'signup.dart';
 import 'package:scan/scan.dart';
@@ -16,13 +18,25 @@ import 'calendar.dart';
 import 'account.dart';
 import 'list.dart';
 import 'top_bar.dart';
-
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 //======= Entry Point of the App =======
 
 void main() => runApp(const MyApp());
 
 //======= Root Widget MyApp =======
+
+class FridgeItem {
+  final String fridgeItemId;
+  final String foodLabel;
+  final DateTime expirationDate;
+  final String measure;
+  final double totalCalories;
+  dynamic ingredients;
+
+  FridgeItem(this.fridgeItemId, this.foodLabel, this.ingredients,
+      this.expirationDate, this.measure, this.totalCalories);
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -61,36 +75,38 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  ScanController controller = ScanController();
-  TextEditingController ingController = TextEditingController();
   // TextEditingController nutritionTypeController = TextEditingController(); //TODO: Implement cooking vs logging
-  String message = '';
+  TextEditingController ingController = TextEditingController();
+  List<FridgeItem> _fridgeItems = [];
+  ScanController controller = ScanController();
+  List<String> _suggestions = [];
+  BuildContext? _context;
   var _scanResult = ''; // Assuming this holds the "upc" value.
+  String message = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _context = context;
+    _fetchFridgeItems();
+  }
 
   // Function to handle getting the token
-  Future<String?> getToken() async {
+  Future<String> getToken() async {
     const storage = FlutterSecureStorage();
-    return await storage.read(key: 'auth_token');
+    String? token = await storage.read(key: 'auth_token');
+    return token ?? '';
   }
 
   Future<void> parse(String scanResult) async {
     var path = await buildPath('api/parser');
     var url = Uri.parse(path);
-    var headers = {'Content-Type': 'application/json'};
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
     var body = {};
-
-    // Retrieve the token from storage
-    final token = await getToken();
-    if (token != null) {
-      headers['Authorization'] = 'Bearer $token';
-    } else {
-      // TODO: Handle the case when the token is not available (e.g., user not logged in)
-      // You may choose to redirect to the login screen or show an error message.
-      setState(() {
-        message = 'User not logged in. Please log in.';
-      });
-      return;
-    }
 
     if (_scanResult.isNotEmpty) {
       body['upc'] = _scanResult;
@@ -116,12 +132,25 @@ class _MainPageState extends State<MainPage> {
           message = '';
         });
 
-        // Do something with the food results
         var foodResults = res['foodResults'];
         var nextPage = res['nextPage'];
         var text = res['text'];
 
-        _showErrorDialog(text); //TODO: FOR TESTING, REMOVE
+        var result = await Navigator.push(
+          _context!,
+          MaterialPageRoute(
+            builder: (context) => ParserResultsPage(
+              foodResults: foodResults,
+              nextPage: nextPage,
+              text: text,
+            ),
+          ),
+        );
+
+        // refresh the page
+        setState(() {});
+
+        print(text); //TODO: FOR TESTING, REMOVE
       } else {
         // Other status codes
         setState(() {
@@ -163,79 +192,153 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  void _onSearchChanged(String searchText) {
-    //  Add search functionality
+  void _onSearchChanged(String value) async {
+    if (value.isEmpty) {
+      setState(() {
+        _suggestions.clear();
+      });
+      return;
+    }
+
+    var suggestions = await _fetchSuggestions(value);
+    setState(() {
+      _suggestions = suggestions;
+    });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Size based on screen
-    final double containerWidth = MediaQuery.of(context).size.width > 600
-        ? 600
-        : MediaQuery.of(context).size.width;
+  Future<List<String>> _getSuggestions(String query) async {
+    if (query.isEmpty) {
+      return [];
+    }
 
-    return Scaffold(
-      appBar: const topBar(title: 'Main Page'),
-      body: Center(
-        child: Container(
-          width: containerWidth,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
-                spreadRadius: 5,
-                blurRadius: 7,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                const Text(
-                  'Search Ingredients', //  Change this???
-                  style: TextStyle(fontSize: 20, color: Colors.green),
-                ),
-                const SizedBox(height: 10),
-                Card(
-                  elevation: 8.0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: ListTile(
-                    leading: IconButton(
-                        icon: const Icon(Icons.qr_code_scanner,
-                            color: Colors.green),
-                        onPressed: () async {
-                          await _showBarcodeScanner();
-                          if (_scanResult.isNotEmpty) {
-                            await parse(_scanResult);
-                            _scanResult = "";
-                          }
-                        }),
-                    title: TextField(
-                      decoration: const InputDecoration(
-                        hintText: 'Search',
-                        border: InputBorder.none,
-                      ),
-                      onChanged: _onSearchChanged,
-                    ),
-                    trailing: const Icon(Icons.search, color: Colors.green),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      bottomNavigationBar: const bottomBar(
-        selectedIndex: 0, //  Main Index
-      ),
-    );
+    return await _fetchSuggestions(query);
+  }
+
+  Future<List<String>> _fetchSuggestions(String value) async {
+    try {
+      var path = await buildPath('api/manual_search');
+      var url = Uri.parse(path);
+      var token = await getToken();
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      };
+      var body = jsonEncode({'q': value});
+
+      var response = await http.post(url, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        _suggestions = List<String>.from(data).take(6).toList();
+        _suggestions.remove(value);
+        return _suggestions;
+      }
+    } catch (e) {
+      // Handle errors
+    }
+
+    return [];
+  }
+
+  void _onSuggestionSelected(String suggestion) {
+    // Handle suggestion selection here
+    print("Selected suggestion: $suggestion");
+
+    // Update the search text with the selected suggestion
+    setState(() {
+      ingController.text = suggestion;
+      // Move the cursor to the end of the line
+      ingController.selection = TextSelection.fromPosition(
+        TextPosition(offset: ingController.text.length),
+      );
+    });
+  }
+
+  Future<void> _fetchFridgeItems() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
+    var userId = userData['userId'];
+
+    try {
+      var path = await buildPath('api/get_all_fridge_items/$userId');
+      var url = Uri.parse(path);
+      var token = await getToken();
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      var response = await http.get(url, headers: headers);
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        var fridgeItemsData = List<Map<String, dynamic>>.from(data);
+
+        // Fetch individual fridge items using fridgeItemIds
+        List<FridgeItem> fridgeItems = [];
+        for (var fridgeItemData in fridgeItemsData) {
+          var fridgeItemId = fridgeItemData['_id'];
+
+          path = await buildPath('api/get_fridge_item/$fridgeItemId');
+          url = Uri.parse(path);
+          var fridgeItemResponse = await http.get(url, headers: headers);
+          if (fridgeItemResponse.statusCode == 200) {
+            var fridgeItemData = jsonDecode(fridgeItemResponse.body);
+
+            var itemId = fridgeItemData['_id'];
+            var foodLabel = fridgeItemData['foodLabel'];
+            var ingredients = fridgeItemData['ingredients'];
+            var expirationDate =
+                DateTime.parse(fridgeItemData['expirationDate']);
+            var measure = fridgeItemData['measure'];
+            var totalCalories = fridgeItemData['totalCalories'].toDouble();
+
+            fridgeItems.add(FridgeItem(itemId, foodLabel, ingredients,
+                expirationDate, measure, totalCalories));
+          } else {
+            _showErrorDialog('Failed to fetch fridge item details.');
+          }
+        }
+
+        setState(() {
+          _fridgeItems = fridgeItems;
+        });
+      } else {
+        _showErrorDialog('Failed to fetch fridge item IDs.');
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
+  }
+
+  Future<void> _deleteFridgeItem(FridgeItem item) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var userData = jsonDecode(prefs.getString('user_data') ?? '{}');
+    var userId = userData['userId'];
+
+    var path = await buildPath('api/delete_fridge_item');
+    var url = Uri.parse(path);
+    var token = await getToken();
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    };
+    var body = jsonEncode({'fridgeItemId': item.fridgeItemId});
+
+    try {
+      var response = await http.delete(url, headers: headers, body: body);
+      print('Status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _fridgeItems.remove(item);
+        });
+      } else {
+        _showErrorDialog(res['error']);
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
   }
 
   Future<void> _showBarcodeScanner() async {
@@ -327,6 +430,164 @@ class _MainPageState extends State<MainPage> {
             Navigator.of(context).pop();
           });
         },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: const topBar(title: 'Main Page'),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            elevation: 8.0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: ListTile(
+              leading: IconButton(
+                  icon: const Icon(Icons.qr_code_scanner, color: Colors.green),
+                  onPressed: () async {
+                    await _showBarcodeScanner();
+                    if (_scanResult.isNotEmpty) {
+                      await parse(_scanResult);
+                      _scanResult = "";
+                    }
+                  }),
+              title: TypeAheadField(
+                suggestionsCallback: _getSuggestions,
+                itemBuilder: (context, suggestion) {
+                  return ListTile(
+                    title: Text(suggestion),
+                    onTap: () {
+                      // Handle suggestion selection here
+                      _onSuggestionSelected(suggestion);
+                    },
+                  );
+                },
+                onSuggestionSelected: (suggestion) {
+                  // Handle suggestion selection here
+                  _onSuggestionSelected(suggestion);
+                },
+                textFieldConfiguration: TextFieldConfiguration(
+                  controller: ingController, // Use the TextEditingController
+                  decoration: const InputDecoration(
+                    hintText: 'Search Ingredient',
+                    border: InputBorder.none,
+                  ),
+                  onChanged: _onSearchChanged,
+                ),
+                noItemsFoundBuilder: (context) {
+                  return const Text("");
+                },
+                loadingBuilder: (context) {
+                  return const Text("");
+                },
+                debounceDuration: Duration.zero,
+              ),
+              trailing: IconButton(
+                  icon: const Icon(Icons.search, color: Colors.green),
+                  onPressed: () async {
+                    await parse(ingController.text);
+                  }),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _fridgeItems.length,
+              itemBuilder: (context, index) {
+                var fridgeItem = _fridgeItems[index];
+                var itemId = fridgeItem.fridgeItemId;
+                return FridgeItemWidget(
+                  fridgeItemId: fridgeItem.fridgeItemId,
+                  foodLabel: fridgeItem.foodLabel,
+                  expirationDate: fridgeItem.expirationDate,
+                  totalCalories: fridgeItem.totalCalories.toDouble(),
+                  quantity: fridgeItem.ingredients[0]['quantity'].toDouble(),
+                  measure: fridgeItem.measure,
+                  onTap: () {
+                    // TODO: Navigate to the nutrients page when tapped
+                    print("Tapped! $itemId");
+                  },
+                  onEdit: () {
+                    // TODO: Implement edit functionality
+                    print("Edit Button!");
+                  },
+                  onDelete: () {
+                    // TODO: Implement delete functionality
+                    print("Delete Button!");
+                    _deleteFridgeItem(fridgeItem);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: const bottomBar(
+        selectedIndex: 0, //  Main Index
+      ),
+    );
+  }
+}
+
+String formatQuantity(double quantity, String measure) {
+  String formattedQuantity =
+      quantity.toStringAsFixed(1); // Format quantity to 1 decimal place
+  String pluralizedMeasure = quantity == 1
+      ? measure
+      : '${measure}s'; // Append 's' to measure if quantity is not 1
+  return '$formattedQuantity $pluralizedMeasure';
+}
+
+class FridgeItemWidget extends StatelessWidget {
+  final String fridgeItemId;
+  final String foodLabel;
+  final DateTime expirationDate;
+  final double totalCalories;
+  final double quantity;
+  final String measure;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const FridgeItemWidget({
+    super.key,
+    required this.fridgeItemId,
+    required this.foodLabel,
+    required this.expirationDate,
+    required this.totalCalories,
+    required this.quantity,
+    required this.measure,
+    required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(foodLabel),
+      subtitle: Text(
+        'Expiration Date: ${DateFormat('MM/dd/yy').format(expirationDate)}\n'
+        'Quantity: ${formatQuantity(quantity, measure)}\n'
+        'Total Calories: $totalCalories',
+      ),
+      onTap: onTap,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: onEdit,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: onDelete,
+          ),
+        ],
       ),
     );
   }

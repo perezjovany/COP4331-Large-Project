@@ -21,6 +21,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController loginNameController = TextEditingController();
   final TextEditingController loginPasswordController = TextEditingController();
+  final TextEditingController _passwordResetEmailController = TextEditingController();
   bool _obscureText = true;
   String message = '';
   bool seePass = true;
@@ -66,6 +67,7 @@ class _LoginPageState extends State<LoginPage> {
         });
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pop(context);
           Navigator.pushNamed(context, '/main');
         });
       } else {
@@ -99,6 +101,64 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Future<void> _showPasswordResetPopup() async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Forgot your password?'),
+          content: TextField(
+            controller: _passwordResetEmailController,
+            decoration: InputDecoration(
+              hintText: "Enter your email",
+              hintStyle: TextStyle(color: Colors.grey), // Set the text color here
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Implement the logic to send the password reset request
+                _sendPasswordResetRequest();
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Reset Password'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _sendPasswordResetRequest() async {
+    var path = await buildPath('api/reset_password');
+    var url = Uri.parse(path);
+    var headers = {'Content-Type': 'application/json'};
+    var body = jsonEncode({
+      'email': _passwordResetEmailController.text,
+    });
+
+    try {
+      var response = await http.post(url, headers: headers, body: body);
+      var res = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        // Password reset request was successful
+        // Show a success message or do any necessary handling
+      } else {
+        // Show an error message
+        _showErrorDialog(res['error']);
+      }
+    } catch (e) {
+      _showErrorDialog(e.toString());
+    }
+  }
+
   void _togglePasswordVisibility() {
     setState(() {
       _obscureText = !_obscureText;
@@ -111,38 +171,37 @@ class _LoginPageState extends State<LoginPage> {
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/background.jpg"), //  PLACEHOLDER background image, needs to be changed
+            image: AssetImage(
+                "assets/background.jpg"), //  PLACEHOLDER background image, needs to be changed
             fit: BoxFit.cover,
           ),
         ),
-
         child: Center(
           child: SingleChildScrollView(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
-
-              child: BackdropFilter( // Frosted glass effect
+              child: BackdropFilter(
+                // Frosted glass effect
                 filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
 
                 child: Container(
                   width: 400,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-
                     borderRadius: BorderRadius.circular(10),
                     color: Colors.brown.withOpacity(0.05),
-
                     boxShadow: [
-                      BoxShadow(color: Colors.white.withOpacity(0.03), spreadRadius: 5),
-                      BoxShadow(color: Colors.white.withOpacity(0.03), blurRadius: 7),
+                      BoxShadow(
+                          color: Colors.white.withOpacity(0.03),
+                          spreadRadius: 5),
+                      BoxShadow(
+                          color: Colors.white.withOpacity(0.03), blurRadius: 7),
                     ],
-
                     border: Border.all(
                       width: 1.5,
                       color: Colors.white.withOpacity(0.2),
                     ),
                   ),
-
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
@@ -153,13 +212,21 @@ class _LoginPageState extends State<LoginPage> {
                       ),
 
                       const SizedBox(height: 50),
-                      const Text("Welcome to KitchenPal", style: TextStyle(color: Colors.green, fontSize: 34, fontWeight: FontWeight.bold)), // PLACEHOLDER app name
+                      const Text("Welcome to KitchenPal",
+                          style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 34,
+                              fontWeight:
+                                  FontWeight.bold)), // PLACEHOLDER app name
 
                       const SizedBox(height: 20),
-                      const Text("Your kitchen management made easy", style: TextStyle(color: Colors.white, fontSize: 16)), // PLACEHOLDER motto/description
+                      const Text("Your kitchen management made easy",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16)), // PLACEHOLDER motto/description
 
                       const SizedBox(height: 50), //  Text-field sections
-                       TextField(
+                      TextField(
                         controller: loginNameController,
                         style: const TextStyle(color: Colors.green),
                         decoration: const InputDecoration(
@@ -182,9 +249,10 @@ class _LoginPageState extends State<LoginPage> {
                           border: const OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.white),
                           ),
-
                           suffixIcon: IconButton(
-                            icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
+                            icon: Icon(_obscureText
+                                ? Icons.visibility
+                                : Icons.visibility_off),
                             onPressed: _togglePasswordVisibility,
                           ),
                         ),
@@ -194,7 +262,9 @@ class _LoginPageState extends State<LoginPage> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {}, // Need to add functionality here
+                          onPressed: () {
+                            _showPasswordResetPopup(); // Show the password reset popup
+                          },
                           child: const Text("Forgot Password?", style: TextStyle(color: Colors.white)),
                         ),
                       ),
@@ -202,15 +272,16 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 20),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white, backgroundColor: Colors.green,
-                          padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 15),
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 100, vertical: 15),
                         ),
-
                         onPressed: () {
                           doLogin();
                         },
-
-                        child: const Text("Login", style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text("Login",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
 
                       // Display error message
@@ -231,11 +302,13 @@ class _LoginPageState extends State<LoginPage> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => SignUpPage()), // PLACEHOLDER function
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    SignUpPage()), // PLACEHOLDER function
                           );
                         },
-
-                        child: const Text("New to KitchenPal? Create Account", style: TextStyle(color: Colors.white)),
+                        child: const Text("New to KitchenPal? Create Account",
+                            style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
