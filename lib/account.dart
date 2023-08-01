@@ -21,8 +21,8 @@ class User {
   bool? isLightMode;
 
   bool isEditing;
-  TextEditingController nameController;
-  TextEditingController emailController;
+  TextEditingController firstNameController;
+  TextEditingController lastNameController;
   TextEditingController phoneController;
 
   User({
@@ -38,9 +38,8 @@ class User {
     required this.daysLeft,
     required this.isLightMode,
   })  : this.isEditing = false,
-        this.nameController =
-            TextEditingController(text: "$firstName $lastName"),
-        this.emailController = TextEditingController(text: email),
+        this.firstNameController = TextEditingController(text: firstName),
+        this.lastNameController = TextEditingController(text: lastName),
         this.phoneController = TextEditingController(text: phone);
 }
 
@@ -192,28 +191,33 @@ class State_Account extends State<AccountPage> {
         child: Column(
           children: <Widget>[
             TextFormField(
-              controller: user.nameController,
-              decoration: const InputDecoration(labelText: 'Full Name'),
+              controller: user
+                  .firstNameController, // Updated to use firstNameController
+              decoration: const InputDecoration(
+                  labelText: 'First Name'), // Updated label
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter your full name';
+                  return 'Please enter your first name'; // Updated validation message
                 }
                 return null;
               },
             ),
             TextFormField(
-              controller: user.emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
+              controller:
+                  user.lastNameController, // Updated to use lastNameController
+              decoration: const InputDecoration(
+                  labelText: 'Last Name'), // Updated label
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter your email';
+                  return 'Please enter your last name'; // Updated validation message
                 }
                 return null;
               },
             ),
             TextFormField(
               controller: user.phoneController,
-              decoration: const InputDecoration(labelText: 'Phone'),
+              decoration: const InputDecoration(
+                  labelText: 'Phone Number'), // Updated label
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter your phone number';
@@ -227,9 +231,10 @@ class State_Account extends State<AccountPage> {
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
                   setState(() {
-                    user.firstName = user.nameController.text.split(' ')[0];
-                    user.lastName = user.nameController.text.split(' ')[1];
-                    user.email = user.emailController.text;
+                    user.firstName = user.firstNameController
+                        .text; // Updated to use firstNameController text directly
+                    user.lastName = user.lastNameController
+                        .text; // Updated to use lastNameController text directly
                     user.phone = user.phoneController.text;
                   });
                   _updateUser(user);
@@ -243,11 +248,9 @@ class State_Account extends State<AccountPage> {
                   borderRadius: BorderRadius.circular(
                       8), // Adding rounded corners to the button
                 ),
-                primary:
-                    Colors.green, 
+                primary: Colors.green,
                 onPrimary: Colors.white,
-                elevation: 4, 
-                
+                elevation: 4,
               ),
               child: Text('Save Changes'),
             ),
