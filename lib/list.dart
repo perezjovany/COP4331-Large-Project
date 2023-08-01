@@ -64,10 +64,7 @@ class State_List extends State<ListPage> {
       var path = await buildPath('api/create_list');
       var url = Uri.parse(path);
       var token = await getToken();
-      var headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      };
+      var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
       var body = jsonEncode({'userId': userId, 'label': title});
 
       try {
@@ -94,10 +91,7 @@ class State_List extends State<ListPage> {
       var path = await buildPath('api/create_list_item');
       var url = Uri.parse(path);
       var token = await getToken();
-      var headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      };
+      var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
       var body = jsonEncode({'listId': checkList.listId, 'label': title});
 
       try {
@@ -117,7 +111,7 @@ class State_List extends State<ListPage> {
       }
     }
   }
-  
+
   Future<void> _editCheckList(CheckList checkList, String newTitle) async {
     var path = await buildPath('api/update_list');
     var url = Uri.parse(path);
@@ -149,10 +143,7 @@ class State_List extends State<ListPage> {
     var path = await buildPath('api/delete_list');
     var url = Uri.parse(path);
     var token = await getToken();
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
-    };
+    var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
     var body = jsonEncode({'listId': checkList.listId});
 
     try {
@@ -175,12 +166,8 @@ class State_List extends State<ListPage> {
     var path = await buildPath('api/update_list_item');
     var url = Uri.parse(path);
     var token = await getToken();
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
-    };
-    var body = jsonEncode(
-        {'listItemId': item.itemId, 'isChecked': (!item.checked).toString()});
+    var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
+    var body = jsonEncode({'listItemId': item.itemId, 'isChecked': (!item.checked).toString()});
 
     try {
       var response = await http.put(url, headers: headers, body: body);
@@ -203,10 +190,7 @@ class State_List extends State<ListPage> {
     var path = await buildPath('api/update_list_item');
     var url = Uri.parse(path);
     var token = await getToken();
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
-    };
+    var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
     var body = jsonEncode({
       'listItemId': itemId,
       'label': newTitle,
@@ -232,10 +216,7 @@ class State_List extends State<ListPage> {
     var path = await buildPath('api/delete_list_item');
     var url = Uri.parse(path);
     var token = await getToken();
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
-    };
+    var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
     var body = jsonEncode({'listItemId': item.itemId});
 
     try {
@@ -270,22 +251,17 @@ class State_List extends State<ListPage> {
       var url = Uri.parse(path);
 
       var token = await getToken();
-      var headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      };
+      var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
 
       var response = await http.get(url, headers: headers);
       var res = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
         for (var listData in res) {
-          var listItemsPath =
-              await buildPath('api/get_list_items/${listData['_id']}');
+          var listItemsPath = await buildPath('api/get_list_items/${listData['_id']}');
           var listItemsUrl = Uri.parse(listItemsPath);
 
-          var listItemsResponse =
-              await http.get(listItemsUrl, headers: headers);
+          var listItemsResponse = await http.get(listItemsUrl, headers: headers);
           var listItemsRes = jsonDecode(listItemsResponse.body);
 
           List<Item> items = [];
@@ -299,8 +275,7 @@ class State_List extends State<ListPage> {
             }
           }
 
-          CheckList checkList =
-              CheckList(listData['_id'], listData['label'], items, listData['listId']);
+          CheckList checkList = CheckList(listData['_id'], listData['label'], items, listData['listId']);
           setState(() {
             _checkLists.add(checkList);
           });
@@ -328,8 +303,7 @@ class State_List extends State<ListPage> {
       ),
 
       bottomNavigationBar: const bottomBar(
-        selectedIndex:
-            2, // Sets the selected index of the bottom navigation bar to 2
+        selectedIndex: 2, // Sets the selected index of the bottom navigation bar to 2
       ),
     );
   }
@@ -356,8 +330,7 @@ class State_List extends State<ListPage> {
 
   Widget _buildCheckList(CheckList checkList) {
     bool isEditing = checkList.isEditing ?? false; // Initialize with false
-    TextEditingController controller =
-        checkList.editingController ?? TextEditingController();
+    TextEditingController controller = checkList.editingController ?? TextEditingController();
 
     return Card(
       elevation: 2.0,
@@ -408,14 +381,12 @@ class State_List extends State<ListPage> {
       itemBuilder: (context, index) {
         final item = checkList.items[index];
         bool isEditing = item.isEditing ?? false; // Initialize with false
-        TextEditingController controller =
-            item.editingController ?? TextEditingController();
+        TextEditingController controller = item.editingController ?? TextEditingController();
 
         return ListTile(
           leading: Checkbox(
             value: item.checked,
-            onChanged: (bool? newValue) =>
-                newValue != null ? _toggleItem(item) : null,
+            onChanged: (bool? newValue) => newValue != null ? _toggleItem(item) : null,
           ),
           title: isEditing
               ? TextField(
@@ -496,6 +467,7 @@ class State_List extends State<ListPage> {
         onSubmitted: (value) => _addItem(checkList),
         decoration: InputDecoration(
           hintText: 'Add item',
+          hintStyle: const TextStyle(color: Colors.black),
           suffixIcon: IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => _addItem(checkList),
@@ -510,10 +482,10 @@ class State_List extends State<ListPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Add new check list"),
+        title: const Text("Add new list"),
         content: TextField(
           controller: _newCheckListController,
-          decoration: const InputDecoration(hintText: "Enter check list title"),
+          decoration: const InputDecoration(hintText: "Enter list title", hintStyle: TextStyle(color: Colors.black)),
         ),
         actions: <Widget>[
           TextButton(

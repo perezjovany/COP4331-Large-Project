@@ -80,10 +80,7 @@ class State_Account extends State<AccountPage> {
       print('URL: $url'); // print the URL for debugging
 
       var token = await getToken();
-      var headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      };
+      var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
 
       var response = await http.get(url, headers: headers);
 
@@ -107,8 +104,7 @@ class State_Account extends State<AccountPage> {
               isVerified: userRes['isVerified'],
               daysLeft: userRes['daysLeft'] ?? 0,
               // Use 0 if daysLeft is null
-              isLightMode: userRes['isLightMode'] ??
-                  false); // Use false if isLightMode is null
+              isLightMode: userRes['isLightMode'] ?? false); // Use false if isLightMode is null
         });
       } else {
         _showErrorDialog(res['error']);
@@ -124,10 +120,7 @@ class State_Account extends State<AccountPage> {
     print('URL: $url'); // print the URL for debugging
 
     var token = await getToken();
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
-    };
+    var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
 
     var body = jsonEncode({
       'userId': user.userId,
@@ -156,13 +149,11 @@ class State_Account extends State<AccountPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Account Settings'), // Updated to use AppBar
+        title: const Text('Account Settings'), // Updated to use AppBar
       ),
-      body:
-      _user != null ? _buildUserForm(_user!) : CircularProgressIndicator(),
+      body: _user != null ? _buildUserForm(_user!) : const CircularProgressIndicator(),
       bottomNavigationBar: const bottomBar(
-        selectedIndex:
-        2, // Sets the selected index of the bottom navigation bar to 2
+        selectedIndex: 2, // Sets the selected index of the bottom navigation bar to 2
       ),
     );
   }
@@ -172,14 +163,14 @@ class State_Account extends State<AccountPage> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: Text('Error'),
+          title: const Text('Error'),
           content: Text(errorMessage),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: Text('OK'),
+              child: const Text('OK'),
             ),
           ],
         );
@@ -218,14 +209,14 @@ class State_Account extends State<AccountPage> {
           context: context,
           builder: (BuildContext successDialogContext) {
             return AlertDialog(
-              title: Text('Success'),
-              content: Text('Password successfully changed.'),
+              title: const Text('Success'),
+              content: const Text('Password successfully changed.'),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.of(successDialogContext).pop();
                   },
-                  child: Text('OK'),
+                  child: const Text('OK'),
                 ),
               ],
             );
@@ -237,14 +228,14 @@ class State_Account extends State<AccountPage> {
           context: context,
           builder: (BuildContext errorDialogContext) {
             return AlertDialog(
-              title: Text('Error'),
-              content: Text('An error occurred while changing the password.'),
+              title: const Text('Error'),
+              content: const Text('An error occurred while changing the password.'),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.of(errorDialogContext).pop();
                   },
-                  child: Text('OK'),
+                  child: const Text('OK'),
                 ),
               ],
             );
@@ -257,14 +248,14 @@ class State_Account extends State<AccountPage> {
         context: context,
         builder: (BuildContext errorDialogContext) {
           return AlertDialog(
-            title: Text('Error'),
-            content: Text('An error occurred while changing the password.'),
+            title: const Text('Error'),
+            content: const Text('An error occurred while changing the password.'),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(errorDialogContext).pop();
                 },
-                child: Text('OK'),
+                child: const Text('OK'),
               ),
             ],
           );
@@ -279,13 +270,13 @@ class State_Account extends State<AccountPage> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: Text('Change Password'),
+          title: const Text('Change Password'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
                 controller: newPasswordController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'New Password',
                   labelStyle: TextStyle(color: Colors.grey), // Grey text color for the label
                   hintStyle: TextStyle(color: Colors.grey), // Grey hint text color
@@ -303,7 +294,7 @@ class State_Account extends State<AccountPage> {
               ),
               TextFormField(
                 controller: confirmPasswordController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Confirm New Password',
                   labelStyle: TextStyle(color: Colors.grey), // Grey text color for the label
                   hintStyle: TextStyle(color: Colors.grey), // Grey hint text color
@@ -326,7 +317,7 @@ class State_Account extends State<AccountPage> {
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -337,14 +328,14 @@ class State_Account extends State<AccountPage> {
                       context: context,
                       builder: (BuildContext errorDialogContext) {
                         return AlertDialog(
-                          title: Text('Error'),
-                          content: Text('Passwords do not match.'),
+                          title: const Text('Error'),
+                          content: const Text('Passwords do not match.'),
                           actions: [
                             TextButton(
                               onPressed: () {
                                 Navigator.of(errorDialogContext).pop();
                               },
-                              child: Text('OK'),
+                              child: const Text('OK'),
                             ),
                           ],
                         );
@@ -356,7 +347,7 @@ class State_Account extends State<AccountPage> {
                   }
                 }
               },
-              child: Text('Change Password'),
+              child: const Text('Change Password'),
             ),
           ],
         );
@@ -380,9 +371,8 @@ class State_Account extends State<AccountPage> {
               children: <Widget>[
                 TextFormField(
                   controller: user.firstNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'First Name',
-                  ),
+                  decoration:
+                      const InputDecoration(labelText: 'First Name', labelStyle: TextStyle(color: Colors.black)),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your first name';
@@ -392,9 +382,7 @@ class State_Account extends State<AccountPage> {
                 ),
                 TextFormField(
                   controller: user.lastNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Last Name',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Last Name', labelStyle: TextStyle(color: Colors.black)),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your last name';
@@ -404,9 +392,8 @@ class State_Account extends State<AccountPage> {
                 ),
                 TextFormField(
                   controller: user.phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                  ),
+                  decoration:
+                      const InputDecoration(labelText: 'Phone Number', labelStyle: TextStyle(color: Colors.black)),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your phone number';
@@ -414,7 +401,7 @@ class State_Account extends State<AccountPage> {
                     return null;
                   },
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
@@ -427,7 +414,7 @@ class State_Account extends State<AccountPage> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -435,13 +422,13 @@ class State_Account extends State<AccountPage> {
                     onPrimary: Colors.white,
                     elevation: 4,
                   ),
-                  child: Text('Save Changes'),
+                  child: const Text('Save Changes'),
                 ),
-                SizedBox(height: 8), // Add spacing between the buttons
+                const SizedBox(height: 8), // Add spacing between the buttons
                 ElevatedButton(
                   onPressed: _handleChangePasswordButtonPressed,
                   style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -449,7 +436,7 @@ class State_Account extends State<AccountPage> {
                     onPrimary: Colors.white,
                     elevation: 4,
                   ),
-                  child: Text('Change Password'),
+                  child: const Text('Change Password'),
                 ),
               ],
             ),
@@ -461,7 +448,7 @@ class State_Account extends State<AccountPage> {
 }
 
 void main() {
-  runApp(MaterialApp(
+  runApp(const MaterialApp(
     home: AccountPage(),
   ));
 }

@@ -467,6 +467,7 @@ class _MainPageState extends State<MainPage> {
                   controller: ingController, // Use the TextEditingController
                   decoration: const InputDecoration(
                     hintText: 'Search Ingredient',
+                    hintStyle: TextStyle(color: Colors.black),
                     border: InputBorder.none,
                   ),
                   onChanged: _onSearchChanged,
