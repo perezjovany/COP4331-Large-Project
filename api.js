@@ -853,7 +853,7 @@ exports.setApp = function ( app, client )
 
       const fridgeItems = await FridgeItem.find({ userId: userId }, "_id");
 
-      if (!fridgeItems || fridgeItems.length === 0) {
+      if (!fridgeItems) {
         return res.status(404).json({ error: 'No fridge items found for the given user' });
       }
 
@@ -1029,12 +1029,12 @@ exports.setApp = function ( app, client )
 
   // Endpoint URL: /api/get_user
   // HTTP Method: GET
-  app.get('/api/get_user', authenticateToken, async (req, res, next) => {
+  app.get('/api/get_user/:userId', authenticateToken, async (req, res, next) => {
     try {
       // incoming: userId
       // outgoing: user
   
-      const { userId } = req.body;
+      const userId = req.params.userId;
   
       if (!userId) {
         return res.status(400).json({ error: 'Missing required field' });
