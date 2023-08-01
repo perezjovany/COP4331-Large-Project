@@ -847,7 +847,6 @@ exports.setApp = function (app, client) {
 					!userId ||
 					!expirationDate ||
 					!foodLabel ||
-					!totalCalories ||
 					!measure ||
 					!ingredients
 				) {
