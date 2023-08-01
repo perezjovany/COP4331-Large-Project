@@ -19,6 +19,7 @@ import 'account.dart';
 import 'list.dart';
 import 'top_bar.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:flutter_app/nutrients.dart';
 
 //======= Entry Point of the App =======
 
@@ -98,7 +99,7 @@ class _MainPageState extends State<MainPage> {
     return token ?? '';
   }
 
-  Future<void> parse(String scanResult) async {
+  Future<void> parse(String scanResult, {bool isBarcode = false}) async {
     var path = await buildPath('api/parser');
     var url = Uri.parse(path);
     var token = await getToken();
@@ -132,22 +133,35 @@ class _MainPageState extends State<MainPage> {
           message = '';
         });
 
-        var foodResults = res['foodResults'];
-        var nextPage = res['nextPage'];
-        var text = res['text'];
-
-        Navigator.push(
-          _context!,
-          MaterialPageRoute(
-            builder: (context) => ParserResultsPage(
-              foodResults: foodResults,
-              nextPage: nextPage,
-              text: text,
+        if (isBarcode) {
+          // If the input is a barcode, directly navigate to NutrientsPage
+          var responseObj = await NutritionHelper().nutrients(_context!, res);
+          Navigator.push(
+            _context!,
+            MaterialPageRoute(
+              builder: (context) => NutrientsPage(
+                responseObj: responseObj,
+                viewOnly: true,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          // Otherwise, navigate to ParserResultsPage as before
+          var foodResults = res['foodResults'];
+          var nextPage = res['nextPage'];
+          var text = res['text'];
 
-        print(text); //TODO: FOR TESTING, REMOVE
+          Navigator.push(
+            _context!,
+            MaterialPageRoute(
+              builder: (context) => ParserResultsPage(
+                foodResults: foodResults,
+                nextPage: nextPage,
+                text: text,
+              ),
+            ),
+          );
+        }
       } else {
         // Other status codes
         setState(() {
@@ -449,7 +463,7 @@ class _MainPageState extends State<MainPage> {
                   onPressed: () async {
                     await _showBarcodeScanner();
                     if (_scanResult.isNotEmpty) {
-                      await parse(_scanResult);
+                      await parse(_scanResult, isBarcode: true);
                       _scanResult = "";
                     }
                   }),
