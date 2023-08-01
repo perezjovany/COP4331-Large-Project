@@ -212,8 +212,64 @@ class State_Account extends State<AccountPage> {
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
 
+      if (response.statusCode == 200) {
+        // Password change successful
+        showDialog<void>(
+          context: context,
+          builder: (BuildContext successDialogContext) {
+            return AlertDialog(
+              title: Text('Success'),
+              content: Text('Password successfully changed.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(successDialogContext).pop();
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        // Password change failed, show error message
+        showDialog<void>(
+          context: context,
+          builder: (BuildContext errorDialogContext) {
+            return AlertDialog(
+              title: Text('Error'),
+              content: Text('An error occurred while changing the password.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(errorDialogContext).pop();
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
     } catch (e) {
-
+      // Exception occurred, show error message
+      showDialog<void>(
+        context: context,
+        builder: (BuildContext errorDialogContext) {
+          return AlertDialog(
+            title: Text('Error'),
+            content: Text('An error occurred while changing the password.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(errorDialogContext).pop();
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
     }
   }
 
@@ -238,6 +294,9 @@ class State_Account extends State<AccountPage> {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter the new password';
+                  }
+                  if (value.length < 6) {
+                    return 'Password must be at least 6 characters long';
                   }
                   return null;
                 },
@@ -272,8 +331,29 @@ class State_Account extends State<AccountPage> {
             TextButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
-                  _changePassword(newPasswordController.text, confirmPasswordController.text);
-                  Navigator.of(dialogContext).pop();
+                  // Validate passwords match
+                  if (newPasswordController.text != confirmPasswordController.text) {
+                    showDialog<void>(
+                      context: context,
+                      builder: (BuildContext errorDialogContext) {
+                        return AlertDialog(
+                          title: Text('Error'),
+                          content: Text('Passwords do not match.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(errorDialogContext).pop();
+                              },
+                              child: Text('OK'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  } else {
+                    _changePassword(newPasswordController.text, confirmPasswordController.text);
+                    Navigator.of(dialogContext).pop();
+                  }
                 }
               },
               child: Text('Change Password'),
