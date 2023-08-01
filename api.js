@@ -13,6 +13,7 @@ const List = require("./models/list.js");
 const ListItem = require("./models/listItem.js");
 const FridgeItem = require("./models/fridgeItem.js");
 const Event = require("./models/event.js");
+const UserSettings = require("./models/userSettings.js");
 
 //JWT
 const jwtKey = process.env.JWT_SECRET
@@ -1054,12 +1055,12 @@ exports.setApp = function ( app, client )
 
   // Endpoint URL: /api/get_user_settings
   // HTTP Method: GET
-  app.get('/api/get_user_settings', authenticateToken, async (req, res, next) => {
+  app.get('/api/get_user_settings/:userId', authenticateToken, async (req, res, next) => {
     try {
       // incoming: userId
       // outgoing: user_settings
   
-      const { userId } = req.body;
+      const userId = req.params.userId;
   
       if (!userId) {
         return res.status(400).json({ error: 'Missing required field' });
