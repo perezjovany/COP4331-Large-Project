@@ -230,7 +230,7 @@ class _LoginPageState extends State<LoginPage> {
                         controller: loginNameController,
                         style: const TextStyle(color: Colors.green),
                         decoration: const InputDecoration(
-                          hintText: "Email or Phone number",
+                          hintText: "Username",
                           hintStyle: TextStyle(color: Colors.white),
                           border: OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.white),
