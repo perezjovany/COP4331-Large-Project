@@ -229,7 +229,6 @@ class _MainPageState extends State<MainPage> {
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
         _suggestions = List<String>.from(data).take(6).toList();
-        _suggestions.remove(value);
         return _suggestions;
       }
     } catch (e) {
@@ -237,20 +236,6 @@ class _MainPageState extends State<MainPage> {
     }
 
     return [];
-  }
-
-  void _onSuggestionSelected(String suggestion) {
-    // Handle suggestion selection here
-    print("Selected suggestion: $suggestion");
-
-    // Update the search text with the selected suggestion
-    setState(() {
-      ingController.text = suggestion;
-      // Move the cursor to the end of the line
-      ingController.selection = TextSelection.fromPosition(
-        TextPosition(offset: ingController.text.length),
-      );
-    });
   }
 
   Future<void> _fetchFridgeItems() async {
@@ -461,15 +446,14 @@ class _MainPageState extends State<MainPage> {
                 itemBuilder: (context, suggestion) {
                   return ListTile(
                     title: Text(suggestion),
-                    onTap: () {
-                      // Handle suggestion selection here
-                      _onSuggestionSelected(suggestion);
-                    },
+                    // onTap: () {
+                    //   // Handle suggestion selection here
+                    //   _onSuggestionSelected(suggestion);
+                    // },
                   );
                 },
                 onSuggestionSelected: (suggestion) {
-                  // Handle suggestion selection here
-                  _onSuggestionSelected(suggestion);
+                  parse(ingController.text);
                 },
                 textFieldConfiguration: TextFieldConfiguration(
                   controller: ingController, // Use the TextEditingController
@@ -478,6 +462,9 @@ class _MainPageState extends State<MainPage> {
                     border: InputBorder.none,
                   ),
                   onChanged: _onSearchChanged,
+                  onSubmitted: (value) {
+                    parse(value);
+                  },
                 ),
                 noItemsFoundBuilder: (context) {
                   return const Text("");
