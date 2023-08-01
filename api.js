@@ -1014,6 +1014,9 @@ exports.setApp = function (app, client) {
 					return res.status(404).json({ error: "Fridge item not found" });
 				}
 
+				// Delete the corresponding events associated with the fridgeItemId
+				const deletedEvents = await Event.deleteMany({ fridgeItemId: fridgeItemId });
+
 				res.status(200).json({ error: "" });
 			} catch (error) {
 				handleError(error, res);
