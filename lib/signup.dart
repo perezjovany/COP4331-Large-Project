@@ -26,6 +26,7 @@ class _SignUpPageState extends State<SignUpPage> {
   bool seePass = true;
 
   Future<void> doSignup() async {
+    print("Signup");
     var path = await buildPath('api/signup');
     var url = Uri.parse(path);
     var headers = {'Content-Type': 'application/json'};
@@ -172,7 +173,7 @@ class _SignUpPageState extends State<SignUpPage> {
           controller: loginController,
           style: const TextStyle(color: Colors.green),
           decoration: const InputDecoration(
-            hintText: "Login",
+            hintText: "Username",
             hintStyle: TextStyle(color: Colors.white),
             border: OutlineInputBorder(
               borderSide: BorderSide(color: Colors.white),
@@ -240,6 +241,18 @@ class _SignUpPageState extends State<SignUpPage> {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
+        if (message.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+
         const SizedBox(height: 20),
         TextButton(
           onPressed: () {

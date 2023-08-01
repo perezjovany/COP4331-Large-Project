@@ -3,6 +3,8 @@ require("mongodb");
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const PNF = require('google-libphonenumber').PhoneNumberFormat;
+const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
 
 //Environment ENV
 const environment = process.env.ENVIRONMENT;
@@ -24,6 +26,7 @@ const app_key = process.env.EDAMAM_KEY;
 const password_salt = process.env.PASSWORD_SALT;
 
 //Email
+var emailValidator = require("email-validator");
 const nodemailer = require("nodemailer");
 const apiPort = process.env.PORT || 5000;
 const emailTransport = nodemailer.createTransport({
@@ -114,6 +117,17 @@ exports.setApp = function (app, client) {
 				return res.status(400).json({ error: "Missing required fields" });
 			}
 
+			//Check phone format
+			const phoneNumber = phoneUtil.parse(phone, 'US');
+			if (!phoneUtil.isValidNumber(phoneNumber)) {
+				return res.status(400).json({ error: "Invalid phone number." });
+			}
+
+			//Check email format
+			if (!emailValidator.validate(email)) {
+				return res.status(400).json({ error: "Invalid email address." });
+			}
+
 			// Unique User Check
 			const existingUser = await User.findOne({
 				$or: [{ login: login }, { email: email }],
@@ -123,6 +137,7 @@ exports.setApp = function (app, client) {
 					.status(409)
 					.json({ error: "User with this login or email already exists" });
 			}
+
 
 			//Hash the password
 			var hashedPassword = crypto
