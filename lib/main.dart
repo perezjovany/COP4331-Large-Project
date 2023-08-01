@@ -35,8 +35,8 @@ class FridgeItem {
   final double totalCalories;
   dynamic ingredients;
 
-  FridgeItem(this.fridgeItemId, this.foodLabel, this.ingredients,
-      this.expirationDate, this.measure, this.totalCalories);
+  FridgeItem(
+      this.fridgeItemId, this.foodLabel, this.ingredients, this.expirationDate, this.measure, this.totalCalories);
 }
 
 class MyApp extends StatelessWidget {
@@ -103,10 +103,7 @@ class _MainPageState extends State<MainPage> {
     var path = await buildPath('api/parser');
     var url = Uri.parse(path);
     var token = await getToken();
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
-    };
+    var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
     var body = {};
 
     if (_scanResult.isNotEmpty) {
@@ -124,8 +121,7 @@ class _MainPageState extends State<MainPage> {
     body['nutrition_type'] = "cooking";
 
     try {
-      var response =
-          await http.post(url, headers: headers, body: jsonEncode(body));
+      var response = await http.post(url, headers: headers, body: jsonEncode(body));
       var res = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
@@ -220,10 +216,7 @@ class _MainPageState extends State<MainPage> {
       var path = await buildPath('api/manual_search');
       var url = Uri.parse(path);
       var token = await getToken();
-      var headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      };
+      var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
       var body = jsonEncode({'q': value});
 
       var response = await http.post(url, headers: headers, body: body);
@@ -272,13 +265,11 @@ class _MainPageState extends State<MainPage> {
             var itemId = fridgeItemData['_id'];
             var foodLabel = fridgeItemData['foodLabel'];
             var ingredients = fridgeItemData['ingredients'];
-            var expirationDate =
-                DateTime.parse(fridgeItemData['expirationDate']);
+            var expirationDate = DateTime.parse(fridgeItemData['expirationDate']);
             var measure = fridgeItemData['measure'];
             var totalCalories = fridgeItemData['totalCalories'].toDouble();
 
-            fridgeItems.add(FridgeItem(itemId, foodLabel, ingredients,
-                expirationDate, measure, totalCalories));
+            fridgeItems.add(FridgeItem(itemId, foodLabel, ingredients, expirationDate, measure, totalCalories));
           } else {
             _showErrorDialog('Failed to fetch fridge item details.');
           }
@@ -299,10 +290,7 @@ class _MainPageState extends State<MainPage> {
     var path = await buildPath('api/delete_fridge_item');
     var url = Uri.parse(path);
     var token = await getToken();
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
-    };
+    var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
     var body = jsonEncode({'fridgeItemId': item.fridgeItemId});
 
     try {
@@ -325,10 +313,7 @@ class _MainPageState extends State<MainPage> {
     var path = await buildPath('api/nutrients');
     var url = Uri.parse(path);
     var token = await getToken();
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token'
-    };
+    var headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
 
     var body = jsonEncode({'ingredients': item.ingredients});
 
@@ -341,8 +326,7 @@ class _MainPageState extends State<MainPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                NutrientsPage(responseObj: res, viewOnly: true),
+            builder: (context) => NutrientsPage(responseObj: res, viewOnly: true),
           ),
         );
       } else {
@@ -386,8 +370,7 @@ class _MainPageState extends State<MainPage> {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Feature Not Supported'),
-          content:
-              const Text('Barcode scanning is not supported on your device.'),
+          content: const Text('Barcode scanning is not supported on your device.'),
           actions: [
             TextButton(
               onPressed: () {
@@ -422,9 +405,7 @@ class _MainPageState extends State<MainPage> {
         Container(
             alignment: Alignment.center,
             padding: const EdgeInsets.only(right: 16.0),
-            child: GestureDetector(
-                onTap: () => controller.toggleTorchMode(),
-                child: const Icon(Icons.flashlight_on))),
+            child: GestureDetector(onTap: () => controller.toggleTorchMode(), child: const Icon(Icons.flashlight_on))),
       ],
     );
   }
@@ -549,11 +530,8 @@ class _MainPageState extends State<MainPage> {
 }
 
 String formatQuantity(double quantity, String measure) {
-  String formattedQuantity =
-      quantity.toStringAsFixed(1); // Format quantity to 1 decimal place
-  String pluralizedMeasure = quantity == 1
-      ? measure
-      : '${measure}s'; // Append 's' to measure if quantity is not 1
+  String formattedQuantity = quantity.toStringAsFixed(1); // Format quantity to 1 decimal place
+  String pluralizedMeasure = quantity == 1 ? measure : '${measure}s'; // Append 's' to measure if quantity is not 1
   return '$formattedQuantity $pluralizedMeasure';
 }
 
@@ -585,19 +563,12 @@ class FridgeItemWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       title: Text(foodLabel),
-      subtitle: Text(
-        'Expiration Date: ${DateFormat('MM/dd/yy').format(expirationDate)}\n'
-        'Quantity: ${formatQuantity(quantity, measure)}\n'
-        'Total Calories: $totalCalories',
-      ),
+      subtitle: Text('Expiration Date: ${DateFormat('MM/dd/yy').format(expirationDate)}\n'
+          'Quantity: ${formatQuantity(quantity, measure)}\n'),
       onTap: onTap,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: onEdit,
-          ),
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: onDelete,
